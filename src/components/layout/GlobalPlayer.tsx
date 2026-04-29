@@ -19,26 +19,7 @@ export default function GlobalPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentTrack = PLAYLIST[currentTrackIndex];
 
-  // ХАК ДЛЯ IOS: Разблокируем аудио при первом тапе по экрану
-  useEffect(() => {
-    const unlockAudio = () => {
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.play().then(() => {
-          audioRef.current?.pause();
-        }).catch(() => {});
-      }
-      document.removeEventListener('touchstart', unlockAudio);
-      document.removeEventListener('click', unlockAudio);
-    };
-
-    document.addEventListener('touchstart', unlockAudio);
-    document.addEventListener('click', unlockAudio);
-
-    return () => {
-      document.removeEventListener('touchstart', unlockAudio);
-      document.removeEventListener('click', unlockAudio);
-    };
-  },[]);
+ 
 
   useEffect(() => {
     if (audioRef.current) {

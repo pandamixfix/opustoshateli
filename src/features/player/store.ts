@@ -13,7 +13,7 @@ export const PLAYLIST: Track[] =[
   {
     id: 2,
     title: "Я не понимаю",
-    artist: "Дёня Рамошка",
+    artist: "Aloneyng",
     src: "/music/track2.MP3",
     coverUrl: "/denya.jpg",
   }
