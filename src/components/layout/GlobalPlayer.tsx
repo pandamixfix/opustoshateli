@@ -48,7 +48,7 @@ export default function GlobalPlayer() {
         audioRef.current.pause();
       }
     }
-  }, [isPlaying, currentTrackIndex, setPlaying]);
+  },[isPlaying, currentTrackIndex, setPlaying]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -196,7 +196,8 @@ export default function GlobalPlayer() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-100 bg-black flex flex-col sm:hidden"
+            // ИСПРАВЛЕНИЕ ЗДЕСЬ: используем h-[100dvh] (Dynamic Viewport Height) вместо inset-0
+            className="fixed top-0 left-0 w-full h-dvh z-100 bg-black flex flex-col sm:hidden"
           >
             <div className="absolute inset-0 z-0 overflow-hidden">
               <Image 
@@ -208,9 +209,10 @@ export default function GlobalPlayer() {
               <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/60 to-black"></div>
             </div>
 
-            <div className="relative z-10 flex flex-col h-full px-6 py-8">
+            {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавили pb-16 (отступ снизу), чтобы кнопки не прятались под панелью Safari */}
+            <div className="relative z-10 flex flex-col h-full px-6 pt-8 pb-16 overflow-y-auto">
               
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-8">
                 <button 
                   onClick={() => setIsExpanded(false)} 
                   className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors"
@@ -223,8 +225,9 @@ export default function GlobalPlayer() {
                 <div className="w-8"></div>
               </div>
 
+              {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Ограничили ширину обложки (max-w-[320px]), чтобы она не съедала высоту экрана */}
               <motion.div 
-                className="relative w-full aspect-square shadow-2xl mb-10 border border-white/10"
+                className="relative w-full max-w-[320px] mx-auto aspect-square shadow-2xl mb-8 border border-white/10 shrink-0"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.5 }}
@@ -238,7 +241,7 @@ export default function GlobalPlayer() {
                 />
               </motion.div>
 
-              <div className="flex flex-col items-center text-center mb-10">
+              <div className="flex flex-col items-center text-center mb-8 shrink-0">
                 <h2 className="text-3xl font-playfair tracking-widest uppercase text-white mb-2 line-clamp-1">
                   {currentTrack.title}
                 </h2>
@@ -247,7 +250,7 @@ export default function GlobalPlayer() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2 mb-12 w-full max-w-sm mx-auto">
+              <div className="flex flex-col gap-2 mb-8 w-full max-w-sm mx-auto shrink-0">
                 <input
                   type="range"
                   min={0}
@@ -262,13 +265,14 @@ export default function GlobalPlayer() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-10 mt-auto mb-8">
+              {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Убрали лишний mb-8, кнопки прижмутся к pb-16 */}
+              <div className="flex items-center justify-center gap-10 mt-auto shrink-0">
                 <button onClick={prevTrack} className="text-zinc-400 hover:text-white transition-colors active:scale-90">
                   <SkipBack size={32} strokeWidth={1.5} />
                 </button>
                 <button 
                   onClick={togglePlay} 
-                  className="w-20 h-20 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)]"
+                  className="w-20 h-20 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] shrink-0"
                 >
                   {isPlaying ? <Pause size={32} className="fill-black" /> : <Play size={32} className="ml-2 fill-black" />}
                 </button>
