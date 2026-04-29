@@ -10,15 +10,35 @@ export default function GlobalPlayer() {
   const { currentTrackIndex, isPlaying, togglePlay, setPlaying, nextTrack, prevTrack } = usePlayerStore();
   
   const [duration, setDuration] = useState(0);
-  const[currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.5);
+  const [currentTime, setCurrentTime] = useState(0);
+  const[volume, setVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Состояние для мобильного фуллскрин-плеера
   const [isExpanded, setIsExpanded] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentTrack = PLAYLIST[currentTrackIndex];
+
+  // ХАК ДЛЯ IOS: Разблокируем аудио при первом тапе по экрану
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioRef.current && audioRef.current.paused) {
+        audioRef.current.play().then(() => {
+          audioRef.current?.pause();
+        }).catch(() => {});
+      }
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('click', unlockAudio);
+    };
+
+    document.addEventListener('touchstart', unlockAudio);
+    document.addEventListener('click', unlockAudio);
+
+    return () => {
+      document.removeEventListener('touchstart', unlockAudio);
+      document.removeEventListener('click', unlockAudio);
+    };
+  },[]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -68,7 +88,6 @@ export default function GlobalPlayer() {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  // Блокируем скролл сайта, когда плеер открыт на весь экран
   useEffect(() => {
     if (isExpanded) {
       document.body.style.overflow = "hidden";
@@ -79,7 +98,6 @@ export default function GlobalPlayer() {
 
   return (
     <>
-      {/* САМ АУДИО ДВИЖОК (Невидимый) */}
       <audio
         ref={audioRef}
         src={currentTrack.src}
@@ -87,7 +105,6 @@ export default function GlobalPlayer() {
         onEnded={nextTrack}
       />
 
-      {/* 1. БАЗОВЫЙ ПЛЕЕР (Внизу экрана) */}
       <div 
         className={`fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-t border-white/5 px-4 sm:px-6 py-3 sm:py-4 transition-transform duration-500 ${
           isExpanded ? "translate-y-full" : "translate-y-0"
@@ -95,7 +112,6 @@ export default function GlobalPlayer() {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
-          {/* Инфа о треке (На мобилке клик по ней открывает плеер) */}
           <div 
             className="flex items-center gap-4 w-[60%] sm:w-1/3 cursor-pointer sm:cursor-default"
             onClick={() => {
@@ -121,14 +137,13 @@ export default function GlobalPlayer() {
             </div>
           </div>
 
-          {/* Кнопки управления */}
           <div className="flex items-center justify-end sm:justify-center w-[40%] sm:w-1/3 gap-4 sm:gap-6">
             <button onClick={prevTrack} className="hidden sm:block text-zinc-500 hover:text-zinc-200 transition-colors">
               <SkipBack size={18} />
             </button>
             <button 
               onClick={(e) => {
-                e.stopPropagation(); // Чтобы клик по Play не открыл фуллскрин на мобилке
+                e.stopPropagation();
                 togglePlay();
               }} 
               className="w-10 h-10 flex items-center justify-center border border-zinc-700 hover:border-zinc-300 text-zinc-300 hover:text-white transition-all rounded-full shrink-0"
@@ -140,7 +155,6 @@ export default function GlobalPlayer() {
             </button>
           </div>
           
-          {/* Полоса прокрутки и громкость (ТОЛЬКО ДЛЯ ПК) */}
           <div className="hidden sm:flex items-center justify-end gap-3 w-1/3">
             <div className="flex items-center gap-3 w-full max-w-xs mr-6">
               <span className="text-[10px] font-inter text-zinc-600 w-8 text-right">
@@ -175,7 +189,6 @@ export default function GlobalPlayer() {
         </div>
       </div>
 
-      {/* 2. ПОЛНОЭКРАННЫЙ ПЛЕЕР ДЛЯ МОБИЛОК (Выезжает снизу) */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -185,7 +198,6 @@ export default function GlobalPlayer() {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-100 bg-black flex flex-col sm:hidden"
           >
-            {/* Размытый фон из обложки */}
             <div className="absolute inset-0 z-0 overflow-hidden">
               <Image 
                 src={currentTrack.coverUrl || "/default-cover.jpg"} 
@@ -193,14 +205,11 @@ export default function GlobalPlayer() {
                 fill 
                 className="object-cover blur-[80px] opacity-40 scale-125"
               />
-              {/* Затемнение поверх блюра для читаемости */}
               <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/60 to-black"></div>
             </div>
 
-            {/* Контент плеера */}
             <div className="relative z-10 flex flex-col h-full px-6 py-8">
               
-              {/* Шапка плеера (Свернуть) */}
               <div className="flex items-center justify-between mb-12">
                 <button 
                   onClick={() => setIsExpanded(false)} 
@@ -211,13 +220,11 @@ export default function GlobalPlayer() {
                 <span className="text-[10px] font-inter tracking-[0.3em] uppercase text-zinc-500">
                   Сейчас играет
                 </span>
-                <div className="w-8"></div> {/* Пустой блок для симметрии */}
+                <div className="w-8"></div>
               </div>
 
-              {/* Огромная обложка */}
               <motion.div 
                 className="relative w-full aspect-square shadow-2xl mb-10 border border-white/10"
-                // Легкая анимация обложки при открытии
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.5 }}
@@ -231,7 +238,6 @@ export default function GlobalPlayer() {
                 />
               </motion.div>
 
-              {/* Название и Артист */}
               <div className="flex flex-col items-center text-center mb-10">
                 <h2 className="text-3xl font-playfair tracking-widest uppercase text-white mb-2 line-clamp-1">
                   {currentTrack.title}
@@ -241,7 +247,6 @@ export default function GlobalPlayer() {
                 </p>
               </div>
 
-              {/* Прогресс бар (Таймлайн) */}
               <div className="flex flex-col gap-2 mb-12 w-full max-w-sm mx-auto">
                 <input
                   type="range"
@@ -257,7 +262,6 @@ export default function GlobalPlayer() {
                 </div>
               </div>
 
-              {/* Большие кнопки управления */}
               <div className="flex items-center justify-center gap-10 mt-auto mb-8">
                 <button onClick={prevTrack} className="text-zinc-400 hover:text-white transition-colors active:scale-90">
                   <SkipBack size={32} strokeWidth={1.5} />

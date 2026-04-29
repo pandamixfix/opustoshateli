@@ -29,20 +29,24 @@ export default function MemberCard({ name, role, description, imageUrl, socials,
 
   return (
     <div 
-      className="group relative flex flex-col items-center p-6 border border-zinc-800 bg-black hover:bg-zinc-900/50 transition-colors duration-500"
-      // Для мобилок: при касании карточки вызываем вибрацию
+      // ДОБАВИЛИ select-none (запрет выделения текста)
+      className="group relative flex flex-col items-center p-6 border border-zinc-800 bg-black hover:bg-zinc-900/50 transition-colors duration-500 select-none"
+      // ДОБАВИЛИ WebkitTouchCallout (отключает всплывающее меню "Сохранить картинку" на iOS)
+      style={{ WebkitTouchCallout: "none" }}
       onTouchStart={triggerHaptic}
     >
       
-      <div className="relative w-full aspect-3/4 overflow-hidden mb-8 border border-white/5">
+      {/* ДОБАВИЛИ pointer-events-none на контейнер картинки, чтобы клики проходили "сквозь" неё на саму карточку */}
+      <div className="relative w-full aspect-3/4 overflow-hidden mb-8 border border-white/5 pointer-events-none">
         <Image
           src={imageUrl || "/default-cover.jpg"}
           alt={name}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           priority={priority}
-          // ДОБАВЛЕНО: group-active:grayscale-0 group-active:opacity-100 для срабатывания при удержании пальца
-          className="object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 group-active:grayscale-0 group-active:opacity-100 group-hover:scale-105 group-active:scale-105 transition-all duration-700 ease-in-out"
+          draggable={false} // Запрещаем перетаскивание картинки
+          // ДОБАВИЛИ pointer-events-none и select-none
+          className="object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 group-active:grayscale-0 group-active:opacity-100 group-hover:scale-105 group-active:scale-105 transition-all duration-700 ease-in-out pointer-events-none select-none"
         />
         
         {/* Мобильная подсказка "Удерживайте" (показывается только на мобилках) */}
