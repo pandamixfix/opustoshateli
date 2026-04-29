@@ -22,15 +22,30 @@ export default function ApplyPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
+    try {
+      // Отправляем данные на наш новый серверный роут
+      const response = await fetch("/api/telegram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-    setTimeout(() => {
+      if (response.ok) {
+        setIsSubmitted(true);
+      } else {
+        alert("Произошла ошибка при отправке. Напишите нам напрямую.");
+      }
+    } catch (error) {
+      alert("Проблема с сетью. Попробуйте еще раз.");
+    } finally {
       setIsSubmitting(false);
-      setIsSubmitted(true);
-    }, 2000);
+    }
   };
 
   if (isSubmitted) {

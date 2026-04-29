@@ -30,7 +30,7 @@ const MEMBERS =[
     id: 4,
     name: "Данька Вайверов",
     role: "Опустошитель #04",
-    description: "место свободно",
+    description: "Если ты не шаришь за мелон мьюзик не пиши мне. Укус вампира и бурик, амбассадор всех тусовок и просто зачётный парень",
     imageUrl: "/danka.jpg",
     socials: { tg: "https://t.me/purpurbl4" }
   },
@@ -40,7 +40,7 @@ const MEMBERS =[
     role: "Опустошитель #05",
     description: "aka Витька. Наш бармен, к которому мы гоняем тусоваться во Псков. Мастер выдать забавную дичь, с которой угарает весь Совет.",
     imageUrl: "/vetal.jpg",
-    socials: { tg: "#" }
+    socials: { tg: "https://t.me/VitaliambaSkalik" }
   }
 ];
 
