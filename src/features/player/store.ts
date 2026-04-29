@@ -7,14 +7,14 @@ export const PLAYLIST: Track[] =[
     id: 1,
     title: "мирный трепчик",
     artist: "Stepak4k",
-    src: "/music/track1.mp3", 
+    src: "/music/track1.MP3", 
     coverUrl: "/stepa.jpg",
   },
   {
     id: 2,
     title: "Я не понимаю",
     artist: "Дёня Рамошка",
-    src: "/music/track2.mp3",
+    src: "/music/track2.MP3",
     coverUrl: "/denya.jpg",
   }
 ];
