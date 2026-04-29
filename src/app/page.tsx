@@ -8,7 +8,7 @@ const MEMBERS =[
     role: "Опустошитель #01",
     description: "Человек, с которого началась наша идеология. Задал тренд, рэпер, полиглот. Но помнит главное: в братстве все равны, а вектор развития решает только общий Совет.",
     imageUrl: "/stepa.jpg",
-    socials: { tg: "#", vk: "#" }
+    socials: { tg: "https://t.me/Pureluxure" }
   },
   {
     id: 2,
@@ -16,7 +16,7 @@ const MEMBERS =[
     role: "Опустошитель #02",
     description: "Наш красавчик на страже порядка города. Вайбовый братка, который раздает стиль и делает крутые треки.",
     imageUrl: "/denya.jpg",
-    socials: { tg: "#" }
+    socials: { tg: "https://t.me/kiskeayng" }
   },
   {
     id: 3,
@@ -24,7 +24,7 @@ const MEMBERS =[
     role: "Опустошитель #03 / IT",
     description: "Технический мозг братства и бизнесмен. Создатель этого цифрового пространства и человек, воплощающий наши идеи в код.",
     imageUrl: "/serezha.jpg",
-    socials: { tg: "#", vk: "#" }
+    socials: { tg: "https://t.me/avenuetsa" }
   },
   {
     id: 4,
@@ -32,7 +32,7 @@ const MEMBERS =[
     role: "Опустошитель #04",
     description: "место свободно",
     imageUrl: "/danka.jpg",
-    socials: { tg: "#" }
+    socials: { tg: "https://t.me/purpurbl4" }
   },
   {
     id: 5,
@@ -40,7 +40,7 @@ const MEMBERS =[
     role: "Опустошитель #05",
     description: "aka Витька. Наш бармен, к которому мы гоняем тусоваться во Псков. Мастер выдать забавную дичь, с которой угарает весь Совет.",
     imageUrl: "/vetal.jpg",
-    socials: { tg: "#", vk: "#" }
+    socials: { tg: "#" }
   }
 ];
 
