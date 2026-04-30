@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { Track } from "../../types";
 
-// НАШ ГЛОБАЛЬНЫЙ ПЛЕЙЛИСТ
 export const PLAYLIST: Track[] =[
   {
     id: 1,
@@ -29,7 +28,6 @@ interface PlayerStore {
   prevTrack: () => void;
 }
 
-// СОЗДАЕМ ГЛОБАЛЬНЫЙ СТЕЙТ (добавили () после <PlayerStore>)
 export const usePlayerStore = create<PlayerStore>()((set) => ({
   currentTrackIndex: 0,
   isPlaying: false,

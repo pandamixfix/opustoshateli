@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    // Получаем данные, которые юзер ввел на сайте
     const body = await req.json();
     const { name, contact, superpower, motivation } = body;
 
-    // Формируем красивое сообщение для Телеграма
     const message = `
 ⚡️ <b>Новая заявка в резидентуру!</b>
 
@@ -20,7 +18,6 @@ ${superpower}
 ${motivation}
     `;
 
-    // Берем секретные ключи из переменных окружения
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -31,7 +28,6 @@ ${motivation}
       );
     }
 
-    // Отправляем запрос на официальный сервер Telegram
     const response = await fetch(
       `https://api.telegram.org/bot${token}/sendMessage`,
       {
@@ -42,7 +38,7 @@ ${motivation}
         body: JSON.stringify({
           chat_id: chatId,
           text: message,
-          parse_mode: "HTML", // Чтобы работали жирные шрифты <b>
+          parse_mode: "HTML",
         }),
       }
     );
@@ -51,7 +47,6 @@ ${motivation}
       throw new Error("Ошибка отправки в Telegram");
     }
 
-    // Говорим фронтенду, что всё ок
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Telegram API Error:", error);

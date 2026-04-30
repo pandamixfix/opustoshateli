@@ -10,7 +10,6 @@ export default function TracksPage() {
   return (
     <main className="min-h-screen flex flex-col items-center pt-32 pb-32 px-6">
       
-      {/* Заголовок страницы */}
       <div className="w-full max-w-4xl text-center mb-20">
         <p className="text-[10px] font-inter tracking-[0.4em] text-zinc-500 uppercase mb-6">
           Звучание Опустошателей
@@ -21,7 +20,6 @@ export default function TracksPage() {
         <div className="w-px h-16 bg-zinc-800 mx-auto"></div>
       </div>
 
-      {/* Список треков */}
       <div className="w-full max-w-4xl flex flex-col">
         {PLAYLIST.map((track, index) => {
           const isThisTrackPlaying = currentTrackIndex === index && isPlaying;
@@ -34,7 +32,6 @@ export default function TracksPage() {
                 isThisTrackActive ? "bg-zinc-900/20" : ""
               }`}
             >
-              {/* Обложка с кнопкой Play при наведении */}
               <div 
                 className="relative w-16 h-16 shrink-0 cursor-pointer overflow-hidden border border-white/5"
                 onClick={() => isThisTrackActive ? togglePlay() : playTrack(index)}
@@ -47,7 +44,6 @@ export default function TracksPage() {
                   className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`}
                 />
                 
-                {/* Полупрозрачная кнопка play/pause поверх обложки */}
                 <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${isThisTrackActive || 'opacity-0 group-hover:opacity-100'}`}>
                   {isThisTrackPlaying ? (
                     <Pause size={24} className="text-white" />
@@ -57,7 +53,6 @@ export default function TracksPage() {
                 </div>
               </div>
 
-              {/* Название и Артист */}
               <div className="flex flex-col grow cursor-pointer" onClick={() => isThisTrackActive ? togglePlay() : playTrack(index)}>
                 <h3 className={`text-lg font-playfair tracking-wider uppercase transition-colors ${isThisTrackActive ? "text-white" : "text-zinc-300 group-hover:text-white"}`}>
                   {track.title}
@@ -67,7 +62,6 @@ export default function TracksPage() {
                 </p>
               </div>
 
-              {/* Визуализатор (прыгающие полоски, если трек играет) */}
               <div className="hidden sm:flex items-end gap-1 h-6 w-8">
                 {isThisTrackPlaying && (
                   <>

@@ -7,7 +7,6 @@ export default function SplashScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Через 2 секунды прячем заставку
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2000);

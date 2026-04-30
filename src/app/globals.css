@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Принудительно ставим тотальный черный для всех устройств */
 :root {
   --background: #000000;
   --foreground: #ededed;

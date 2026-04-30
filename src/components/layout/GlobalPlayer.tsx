@@ -177,7 +177,6 @@ export default function GlobalPlayer() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            // ИСПРАВЛЕНИЕ ЗДЕСЬ: используем h-[100dvh] (Dynamic Viewport Height) вместо inset-0
             className="fixed top-0 left-0 w-full h-dvh z-100 bg-black flex flex-col sm:hidden"
           >
             <div className="absolute inset-0 z-0 overflow-hidden">
@@ -190,7 +189,6 @@ export default function GlobalPlayer() {
               <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/60 to-black"></div>
             </div>
 
-            {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавили pb-16 (отступ снизу), чтобы кнопки не прятались под панелью Safari */}
             <div className="relative z-10 flex flex-col h-full px-6 pt-8 pb-16 overflow-y-auto">
               
               <div className="flex items-center justify-between mb-8">
@@ -206,7 +204,6 @@ export default function GlobalPlayer() {
                 <div className="w-8"></div>
               </div>
 
-              {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Ограничили ширину обложки (max-w-[320px]), чтобы она не съедала высоту экрана */}
               <motion.div 
                 className="relative w-full max-w-[320px] mx-auto aspect-square shadow-2xl mb-8 border border-white/10 shrink-0"
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -246,7 +243,6 @@ export default function GlobalPlayer() {
                 </div>
               </div>
 
-              {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Убрали лишний mb-8, кнопки прижмутся к pb-16 */}
               <div className="flex items-center justify-center gap-10 mt-auto shrink-0">
                 <button onClick={prevTrack} className="text-zinc-400 hover:text-white transition-colors active:scale-90">
                   <SkipBack size={32} strokeWidth={1.5} />

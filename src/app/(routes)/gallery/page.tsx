@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 
-// БАЗА ФОТОГРАФИЙ (Вернули alt, чтобы TypeScript был счастлив)
 const PHOTOS =[
   { id: 1, src: "/p1.jpg", alt: "Архив #01" },
   { id: 2, src: "/p2.jpg", alt: "Архив #02" },
@@ -29,7 +28,6 @@ export default function GalleryPage() {
   return (
     <main className="min-h-screen flex flex-col items-center pt-32 pb-32 px-6">
       
-      {/* Заголовок */}
       <div className="w-full max-w-7xl text-center mb-20">
         <p className="text-[10px] font-inter tracking-[0.4em] text-zinc-500 uppercase mb-6">
           Визуальный архив
@@ -45,11 +43,9 @@ export default function GalleryPage() {
           {PHOTOS.map((photo) => (
             <div 
               key={photo.id} 
-              // ИСПРАВЛЕНО: hover:!opacity-100 заменено на hover:opacity-100!
               className="relative break-inside-avoid overflow-hidden cursor-pointer transition-all duration-700 ease-out group-hover/gallery:opacity-30 hover:opacity-100! hover:scale-[1.03] hover:z-10 group/item border border-white/5"
               onClick={() => setSelectedImage(photo.src)}
             >
-              {/* ИСПРАВЛЕНО: Вернули обязательный alt={photo.alt} */}
               <Image
                 src={photo.src}
                 alt={photo.alt}
@@ -58,7 +54,6 @@ export default function GalleryPage() {
                 className="w-full h-auto object-cover brightness-75 group-hover/item:brightness-110 transition-all duration-700"
               />
               
-              {/* ИСПРАВЛЕНО: bg-gradient-to-t заменено на bg-linear-to-t */}
               <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 transition-all duration-500 flex items-end p-6 sm:p-8 translate-y-4 group-hover/item:translate-y-0">
                 <span className="text-sm font-playfair tracking-widest uppercase text-white drop-shadow-md">
                   {photo.alt}
@@ -69,10 +64,8 @@ export default function GalleryPage() {
         </div>
       </div>
 
-      {/* Модальное окно (Lightbox) */}
       {selectedImage && (
         <div 
-          // ИСПРАВЛЕНО: z-[100] заменено на z-100
           className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300"
           onClick={() => setSelectedImage(null)}
         >

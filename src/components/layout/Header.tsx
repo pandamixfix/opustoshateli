@@ -17,13 +17,11 @@ export default function Header() {
     return () => { document.body.style.overflow = "auto"; };
   }, [isMenuOpen]);
 
-  // Функция для закрытия меню при клике на ссылку
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <>
-      {/* ОСНОВНАЯ ШАПКА */}
-      {/* ИСПРАВЛЕНО: z-[60] заменено на z-60 */}
+
       <header className="fixed top-0 left-0 right-0 z-60 bg-black/70 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
           
@@ -31,7 +29,7 @@ export default function Header() {
             Опустошатели
           </Link>
 
-          {/* Навигация для компов */}
+
           <nav className="hidden md:flex gap-10">
             <Link href="/manifest" className="text-xs font-inter tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
               Манифест
@@ -47,7 +45,7 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* Кнопка Бургера для мобилок */}
+
           <button 
             className="md:hidden relative z-50 text-zinc-300 hover:text-white transition-colors p-2 -mr-2"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -57,8 +55,6 @@ export default function Header() {
         </div>
       </header>
 
-      {/* ПОЛНОЭКРАННОЕ МОБИЛЬНОЕ МЕНЮ */}
-      {/* ИСПРАВЛЕНО: z-[55] заменено на z-55 */}
       <div 
         className={`fixed inset-0 z-55 bg-black/95 backdrop-blur-xl md:hidden transition-all duration-500 ease-in-out flex flex-col justify-center px-8 ${
           isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
