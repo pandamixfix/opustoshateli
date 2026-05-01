@@ -30,6 +30,7 @@ export default function RootLayout({
     <html lang="ru">
       <body className={`${inter.variable} ${playfair.variable} bg-black text-white antialiased pb-24`}>
         <SplashScreen />
+        <Header />
         <main>{children}</main>
         <GlobalPlayer />
       </body>
