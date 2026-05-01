@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
-import { createClient } from "../../lib/supabase";
+import { createClient, toProxyUrl } from "../../lib/supabase";
+
+
 
 interface UserProfile {
   display_name: string;
@@ -53,6 +55,7 @@ export default function Header() {
   },[isMenuOpen]);
 
   const closeMenu = () => setIsMenuOpen(false);
+  
 
   return (
     <>

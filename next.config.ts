@@ -8,6 +8,14 @@ const nextConfig = {
       },
     ];
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'guvgbfgtdrsvobkndbzl.supabase.co',
+      },
+    ],
+  },
 };
 
 module.exports = nextConfig;

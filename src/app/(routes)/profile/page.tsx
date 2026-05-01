@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { LogOut, Camera, Edit2, Check, Users, LayoutDashboard, Settings } from "lucide-react";
-import { createClient } from "../../../lib/supabase";
+import { createClient, toProxyUrl } from "../../../lib/supabase";
 
 interface UserProfile {
   id: string;
@@ -57,8 +57,12 @@ export default function ProfilePage() {
           .single();
 
         if (profileData) {
-          setProfile(profileData);
-          setNewStatus(profileData.status || "");
+           // Конвертируем URL аватарки через прокси
+           setProfile({
+           ...profileData,
+          avatar_url: toProxyUrl(profileData.avatar_url) || profileData.avatar_url
+        });
+        setNewStatus(profileData.status || "");
         }
 
         // 2. Грузим личные посты юзера
@@ -89,22 +93,25 @@ export default function ProfilePage() {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !profile) return;
+  const file = e.target.files?.[0];
+  if (!file || !profile) return;
+  
+  setIsUploading(true);
+  try {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
     
-    setIsUploading(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file);
-      if (uploadError) throw uploadError;
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(fileName, file, { upsert: true }); // upsert чтобы не было конфликтов
+    if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      const newUrl = data.publicUrl;
+    const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+    const newUrl = data.publicUrl; // в БД сохраняем оригинальный URL
 
-      await supabase.from("profiles").update({ avatar_url: newUrl }).eq("id", profile.id);
+    await supabase.from("profiles").update({ avatar_url: newUrl }).eq("id", profile.id);
       
-      setProfile({ ...profile, avatar_url: newUrl });
+      setProfile({ ...profile, avatar_url: toProxyUrl(newUrl) || newUrl });
       window.dispatchEvent(new Event('profileUpdated'));
     } catch (err) {
       console.error(err);
