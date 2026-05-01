@@ -142,7 +142,7 @@ export default function ApplyPage() {
                   value={formData.superpower}
                   onChange={handleChange}
                   rows={4}
-                  placeholder="Бизнес, IT, искусство, связи... В чем вы лучшие?"
+                  placeholder="Бизнес, IT, искусство, связи.. В чем вы лучшие?"
                   className="bg-transparent border-b border-zinc-800 py-3 text-sm font-inter text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-400 transition-colors resize-none"
                 />
               </div>
