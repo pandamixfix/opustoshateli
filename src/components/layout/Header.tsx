@@ -6,15 +6,13 @@ import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { createClient, toProxyUrl } from "../../lib/supabase";
 
-
-
 interface UserProfile {
   display_name: string;
   avatar_url: string;
 }
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const[isMenuOpen, setIsMenuOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [supabase] = useState(() => createClient());
 
@@ -23,7 +21,12 @@ export default function Header() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const { data } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', session.user.id).maybeSingle();
-        setProfile(data);
+        if (data) {
+          setProfile({
+            ...data,
+            avatar_url: toProxyUrl(data.avatar_url) || data.avatar_url
+          });
+        }
       } else {
         setProfile(null);
       }
@@ -31,7 +34,6 @@ export default function Header() {
     
     fetchSession();
 
-    // ИСПРАВЛЕНИЕ: Убрали (event, session), оставили пустые скобки ()
     const { data: authListener } = supabase.auth.onAuthStateChange(async () => {
       fetchSession();
     });
@@ -42,7 +44,6 @@ export default function Header() {
       authListener.subscription.unsubscribe(); 
       window.removeEventListener('profileUpdated', fetchSession);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   useEffect(() => {
@@ -52,11 +53,10 @@ export default function Header() {
       document.body.style.overflow = "auto";
     }
     return () => { document.body.style.overflow = "auto"; };
-  },[isMenuOpen]);
+  }, [isMenuOpen]);
 
   const closeMenu = () => setIsMenuOpen(false);
   
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-60 bg-black/70 backdrop-blur-md border-b border-white/5">
@@ -107,7 +107,6 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Мобильное меню */}
       <div 
         className={`fixed inset-0 z-55 bg-black/95 backdrop-blur-xl md:hidden transition-all duration-500 ease-in-out flex flex-col justify-center px-8 ${
           isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"

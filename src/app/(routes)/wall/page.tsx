@@ -3,9 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Heart, Send, Trash2, Plus, X, Image as ImageIcon, Video, Music, MessageSquare } from "lucide-react";
 import { type User } from "@supabase/supabase-js";
-import { createClient } from "../../../lib/supabase";
+import { createClient, toProxyUrl } from "../../../lib/supabase";
 
 interface Author {
   id: string;
@@ -37,22 +38,22 @@ interface Post {
 }
 
 export default function WallPage() {
-  const[posts, setPosts] = useState<Post[]>([]);
-  const [newPostText, setNewPostText] = useState("");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const[newPostText, setNewPostText] = useState("");
   
   const [postMedia, setPostMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const[mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const[userProfile, setUserProfile] = useState<Author | null>(null);
+  const [userProfile, setUserProfile] = useState<Author | null>(null);
   
-  const [loading, setLoading] = useState(true);
+  const[loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const[showComments, setShowComments] = useState<Record<string, boolean>>({});
-  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const[commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -82,8 +83,7 @@ export default function WallPage() {
           .order("created_at", { ascending: false });
 
         if (error) {
-          console.error("Ошибка при загрузке постов:", error);
-          alert("Ошибка БД! Проверьте, создали ли вы таблицу comments.");
+          console.error(error);
         } else if (postsData) {
           const formattedPosts = (postsData as unknown as Post[]).map(post => ({
             ...post,
@@ -92,7 +92,7 @@ export default function WallPage() {
           setPosts(formattedPosts);
         }
       } catch (e) {
-        console.error("Критическая ошибка:", e);
+        console.error(e);
       } finally {
         setLoading(false);
       }
@@ -139,7 +139,6 @@ export default function WallPage() {
         }
       }
 
-      // Создаем пост без сложного вложенного селекта (чтобы избежать багов PostgREST)
       const { data: newPost, error } = await supabase
         .from("posts")
         .insert({ author_id: currentUser.id, content: newPostText.trim(), media_url: uploadedMediaUrl, media_type: mediaType })
@@ -150,10 +149,8 @@ export default function WallPage() {
         .single();
 
       if (error) {
-        console.error("Ошибка при публикации:", error);
-        alert(`Ошибка публикации: ${error.message}`);
+        console.error(error);
       } else if (newPost) {
-        // Добавляем пост в стейт локально (комментарии и лайки пустые)
         setPosts([{ ...(newPost as unknown as Post), likes: [], comments:[] }, ...posts]);
         setNewPostText("");
         clearMedia();
@@ -175,7 +172,7 @@ export default function WallPage() {
     setPosts(posts.map(post => {
       if (post.id === postId) {
         if (isLikedByMe) return { ...post, likes: post.likes.filter(l => l.user_id !== currentUser.id) };
-        return { ...post, likes: [...post.likes, { user_id: currentUser.id }] };
+        return { ...post, likes:[...post.likes, { user_id: currentUser.id }] };
       }
       return post;
     }));
@@ -199,11 +196,11 @@ export default function WallPage() {
       .single();
 
     if (error) {
-      alert("Ошибка при отправке: " + error.message);
+      console.error(error);
     } else if (newComment) {
       setPosts(posts.map(post => {
         if (post.id === postId) {
-          return { ...post, comments: [...post.comments, newComment as unknown as Comment] };
+          return { ...post, comments:[...post.comments, newComment as unknown as Comment] };
         }
         return post;
       }));
@@ -242,13 +239,15 @@ export default function WallPage() {
                   
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0">
-                        {/* ИСПРАВЛЕНИЕ: Добавили priority для ускоренной загрузки аватарок и избавления от предупреждений */}
-                        <Image src={post.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" unoptimized priority />
-                      </div>
+                      <Link href={post.profiles?.id ? `/profile/${post.profiles.id}` : '#'} className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 hover:border-zinc-500 transition-colors">
+                        <Image src={toProxyUrl(post.profiles?.avatar_url) || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" unoptimized priority />
+                      </Link>
+                      
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-playfair tracking-wider uppercase text-zinc-200">{post.profiles?.display_name || "Неизвестный"}</span>
+                          <Link href={post.profiles?.id ? `/profile/${post.profiles.id}` : '#'} className="text-sm font-playfair tracking-wider uppercase text-zinc-200 hover:text-white transition-colors">
+                            {post.profiles?.display_name || "Неизвестный"}
+                          </Link>
                           {post.profiles?.role === 'Опустошатель' && (
                             <span className="text-[8px] border border-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Совет</span>
                           )}
@@ -267,17 +266,17 @@ export default function WallPage() {
                   
                   {post.media_url && post.media_type === 'image' && (
                     <div className="relative w-full aspect-video border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden">
-                      <Image src={post.media_url} alt="Медиа поста" fill className="object-contain" unoptimized />
+                      <Image src={toProxyUrl(post.media_url)!} alt="Медиа поста" fill className="object-contain" unoptimized />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'video' && (
                     <div className="relative w-full border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden">
-                      <video src={post.media_url} controls className="w-full max-h-[500px] object-contain" />
+                      <video src={toProxyUrl(post.media_url)!} controls className="w-full max-h-125 object-contain" />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'audio' && (
                     <div className="w-full mb-6 p-4 border border-zinc-800 bg-zinc-950 rounded-lg">
-                      <audio src={post.media_url} controls className="w-full" />
+                      <audio src={toProxyUrl(post.media_url)!} controls className="w-full" />
                     </div>
                   )}
 
@@ -300,12 +299,15 @@ export default function WallPage() {
                       ) : (
                         post.comments?.map(comment => (
                           <div key={comment.id} className="flex gap-3 items-start">
-                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-zinc-800 shrink-0">
-                              <Image src={comment.profiles.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" unoptimized priority/>
-                            </div>
+                            <Link href={comment.profiles?.id ? `/profile/${comment.profiles.id}` : '#'} className="relative w-8 h-8 rounded-full overflow-hidden border border-zinc-800 shrink-0 hover:border-zinc-500 transition-colors">
+                              <Image src={toProxyUrl(comment.profiles?.avatar_url) || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" unoptimized priority/>
+                            </Link>
+                            
                             <div className="flex flex-col bg-zinc-950/50 p-3 border border-zinc-900 rounded-r-xl rounded-bl-xl w-full">
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-playfair tracking-widest uppercase text-zinc-300">{comment.profiles.display_name}</span>
+                                <Link href={comment.profiles?.id ? `/profile/${comment.profiles.id}` : '#'} className="text-xs font-playfair tracking-widest uppercase text-zinc-300 hover:text-white transition-colors">
+                                  {comment.profiles?.display_name}
+                                </Link>
                                 <span className="text-[9px] text-zinc-600 font-inter">{new Date(comment.created_at).toLocaleTimeString("ru-RU", {hour: "2-digit", minute: "2-digit"})}</span>
                               </div>
                               <p className="text-xs font-inter text-zinc-400 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
@@ -345,7 +347,7 @@ export default function WallPage() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-xl border border-zinc-800 bg-zinc-950 p-6 relative flex flex-col gap-6">
             <div className="flex justify-between items-center border-b border-zinc-900 pb-4">
               <h2 className="text-lg font-playfair tracking-widest uppercase text-white">Новая запись</h2>
