@@ -1,14 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns:[
+  async rewrites() {
+    return [
       {
-        protocol: 'https',
-        hostname: 'guvgbfgtdrsvobkndbzl.supabase.co',
-        pathname: '/**',
+        source: '/supabase/:path*',
+        destination: 'https://guvgbfgtdrsvobkndbzl.supabase.co/:path*',
       },
-    ],
+    ];
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
