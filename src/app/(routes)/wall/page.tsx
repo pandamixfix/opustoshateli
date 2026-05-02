@@ -7,12 +7,17 @@ import Link from "next/link";
 import { Heart, Send, Trash2, Plus, X, Image as ImageIcon, Video, Music, MessageSquare, Edit2 } from "lucide-react";
 import { type User } from "@supabase/supabase-js";
 import { createClient, toProxyUrl } from "../../../lib/supabase";
+import UserName from "../../../components/shared/UserName"; // ПОДКЛЮЧИЛИ КОМПОНЕНТ
 
 interface Author {
   id: string;
   display_name: string;
   avatar_url: string;
   role: string;
+  name_color?: string;
+  name_font?: string;
+  name_glow?: boolean;
+  name_effect?: string;
 }
 
 interface Like { user_id: string; }
@@ -32,7 +37,7 @@ interface Post {
 export default function WallPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const[newPostText, setNewPostText] = useState("");
-  const [postMedia, setPostMedia] = useState<File | null>(null);
+  const[postMedia, setPostMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   
@@ -40,16 +45,15 @@ export default function WallPage() {
   const [userProfile, setUserProfile] = useState<Author | null>(null);
   
   const[loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const[isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const[showComments, setShowComments] = useState<Record<string, boolean>>({});
   const[commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   
-  // Новые стейты для редактирования, фуллскрина и скрытия текста
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [editPostText, setEditPostText] = useState("");
+  const[editingPostId, setEditingPostId] = useState<string | null>(null);
+  const[editPostText, setEditPostText] = useState("");
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,8 +70,9 @@ export default function WallPage() {
         const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
         if (profileData) setUserProfile(profileData);
 
+        // ВАЖНО: Запрашиваем новые поля name_color, name_font, name_glow, name_effect у базы
         const { data: postsData, error } = await supabase.from("posts")
-          .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role ) )`)
+          .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
           .order("created_at", { ascending: false });
 
         if (!error && postsData) {
@@ -116,7 +121,7 @@ export default function WallPage() {
 
       const { data: newPost, error } = await supabase.from("posts")
         .insert({ author_id: currentUser.id, content: newPostText.trim(), media_url: uploadedMediaUrl, media_type: mediaType })
-        .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role )`)
+        .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect )`)
         .single();
 
       if (!error && newPost) {
@@ -161,7 +166,7 @@ export default function WallPage() {
 
     const { data: newComment, error } = await supabase.from("comments")
       .insert({ post_id: postId, user_id: currentUser.id, content: text.trim() })
-      .select(`id, content, created_at, profiles ( id, display_name, avatar_url, role )`)
+      .select(`id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect )`)
       .single();
 
     if (!error && newComment) {
@@ -201,11 +206,20 @@ export default function WallPage() {
                       
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <Link href={`/profile/${post.profiles?.id}`} className="text-sm font-playfair tracking-wider uppercase text-zinc-200 hover:text-white transition-colors">
-                            {post.profiles?.display_name || "Неизвестный"}
+                          {/* ВОТ ТУТ КРАСИВЫЙ НИКНЕЙМ АВТОРА ПОСТА */}
+                          <Link href={`/profile/${post.profiles?.id}`} className="hover:opacity-80 transition-opacity">
+                            <UserName 
+                              displayName={post.profiles?.display_name || "Неизвестный"}
+                              role={post.profiles?.role}
+                              color={post.profiles?.name_color}
+                              font={post.profiles?.name_font}
+                              glow={post.profiles?.name_glow}
+                              effect={post.profiles?.name_effect}
+                              className="text-sm tracking-wider uppercase"
+                            />
                           </Link>
                           {post.profiles?.role === 'Опустошатель' && (
-                            <span className="text-[8px] border border-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Совет</span>
+                            <span className="text-[8px] border border-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">Совет</span>
                           )}
                         </div>
                         <span className="text-[10px] font-inter text-zinc-600 uppercase tracking-wider mt-1">{postDate}</span>
@@ -219,6 +233,7 @@ export default function WallPage() {
                     )}
                   </div>
 
+                  {/* ОСТАЛЬНОЕ БЕЗ ИЗМЕНЕНИЙ ДО КОММЕНТАРИЕВ */}
                   {editingPostId === post.id ? (
                     <div className="flex flex-col gap-3 mb-6">
                       <textarea value={editPostText} onChange={(e) => setEditPostText(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 text-sm font-inter text-zinc-200 p-3 focus:outline-none resize-none" rows={4} />
@@ -260,7 +275,7 @@ export default function WallPage() {
                       <span className="text-xs font-inter">{post.likes.length > 0 ? post.likes.length : ""}</span>
                     </button>
                     
-                    <button onClick={() => setShowComments(prev => ({...prev, [post.id]: !prev[post.id]}))} className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-300"}`}>
+                    <button onClick={() => setShowComments(prev => ({...prev,[post.id]: !prev[post.id]}))} className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-300"}`}>
                       <MessageSquare size={18} />
                       <span className="text-xs font-inter">{post.comments?.length > 0 ? post.comments.length : ""}</span>
                     </button>
@@ -278,7 +293,20 @@ export default function WallPage() {
                             </Link>
                             <div className="flex flex-col bg-zinc-950/50 p-3 border border-zinc-900 rounded-r-xl rounded-bl-xl w-full">
                               <div className="flex justify-between items-center mb-1">
-                                <Link href={`/profile/${comment.profiles?.id}`} className="text-xs font-playfair tracking-widest uppercase text-zinc-300 hover:text-white transition-colors">{comment.profiles?.display_name}</Link>
+                                
+                                {/* ВОТ ТУТ КРАСИВЫЙ НИКНЕЙМ АВТОРА КОММЕНТАРИЯ */}
+                                <Link href={`/profile/${comment.profiles?.id}`} className="hover:opacity-80 transition-opacity">
+                                  <UserName 
+                                    displayName={comment.profiles?.display_name}
+                                    role={comment.profiles?.role}
+                                    color={comment.profiles?.name_color}
+                                    font={comment.profiles?.name_font}
+                                    glow={comment.profiles?.name_glow}
+                                    effect={comment.profiles?.name_effect}
+                                    className="text-xs tracking-widest uppercase"
+                                  />
+                                </Link>
+
                                 <span className="text-[9px] text-zinc-600 font-inter">{new Date(comment.created_at).toLocaleTimeString("ru-RU", {hour: "2-digit", minute: "2-digit"})}</span>
                               </div>
                               <p className="text-xs font-inter text-zinc-400 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
@@ -342,7 +370,6 @@ export default function WallPage() {
         </div>
       )}
 
-      {/* МОДАЛЬНОЕ ОКНО ДЛЯ КАРТИНОК И АВАТАРОК */}
       {selectedImage && (
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>

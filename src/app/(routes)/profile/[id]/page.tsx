@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LayoutDashboard, UserPlus, UserMinus, Users, Maximize2, X, Send, Gamepad2, MonitorPlay, Crown, Shield, Sparkles, PaintBucket } from "lucide-react";
 import { createClient, toProxyUrl } from "../../../../lib/supabase";
+import UserName from "../../../components/shared/UserName";
 
 interface UserProfile {
   id: string;
@@ -315,7 +316,15 @@ export default function UserProfilePage() {
                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
+                     <UserName 
+                        displayName={user.display_name}
+                        role={user.role}
+                        color={user.name_color}
+                        font={user.name_font}
+                        glow={user.name_glow}
+                        effect={user.name_effect}
+                        className="text-sm tracking-wider uppercase opacity-80 group-hover:opacity-100 transition-opacity"
+                       />
                     </div>
                   </Link>
                 ))}
@@ -330,7 +339,15 @@ export default function UserProfilePage() {
                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
+                      <UserName 
+                      displayName={user.display_name}
+                      role={user.role}
+                      color={user.name_color}
+                      font={user.name_font}
+                      glow={user.name_glow}
+                      effect={user.name_effect}
+                      className="text-sm tracking-wider uppercase opacity-80 group-hover:opacity-100 transition-opacity"
+                      />
                     </div>
                   </Link>
                 ))}
