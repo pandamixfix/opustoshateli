@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, Camera, Edit2, Check, Users, LayoutDashboard, Settings, Search, Maximize2, Trash2, X, Send, Gamepad2, MonitorPlay, Image as ImageIcon, Crown, Shield, Sparkles, PaintBucket } from "lucide-react";
+import { LogOut, Camera, Edit2, Check, Users, LayoutDashboard, Settings, Search, Maximize2, Trash2, X, Send, Gamepad2, MonitorPlay, Image as ImageIcon, Crown, Shield, Sparkles, PaintBucket, CheckCircle, AlertCircle } from "lucide-react";
 import { createClient, toProxyUrl } from "../../../lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface UserProfile {
   id: string;
@@ -63,6 +64,7 @@ export default function ProfilePage() {
   const[editNameEffect, setEditNameEffect] = useState("none");
   const[editCardColor, setEditCardColor] = useState("#000000");
   const[editAvatarEffect, setEditAvatarEffect] = useState("none");
+  const[toast, setToast] = useState<{text: string, type: 'success' | 'error'} | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -180,12 +182,15 @@ export default function ProfilePage() {
     await supabase.from("profiles").update({ status: newStatus }).eq("id", profile.id);
     setProfile({ ...profile, status: newStatus });
     setIsEditingStatus(false);
+    
+    // Красивое уведомление
+    setToast({ text: "Статус успешно обновлен", type: 'success' });
+    setTimeout(() => setToast(null), 3000); // Исчезнет через 3 секунды
   };
 
   const handleSaveCustomization = async () => {
     if (!profile) return;
     
-    // Пытаемся отправить данные в Supabase и ловим ошибку, если она есть
     const { error } = await supabase.from("profiles").update({ 
       social_tg: editSocials.tg, 
       social_twitch: editSocials.twitch, 
@@ -200,14 +205,13 @@ export default function ProfilePage() {
       avatar_effect: editAvatarEffect
     }).eq("id", profile.id);
 
-    // Если база данных отклонила сохранение — показываем реальную ошибку
     if (error) {
       console.error("Ошибка БД при сохранении:", error.message);
-      alert("Ошибка сохранения: " + error.message);
-      return; // Останавливаем выполнение, чтобы визуал не обманывал
+      setToast({ text: "Ошибка сохранения: " + error.message, type: "error" });
+      setTimeout(() => setToast(null), 5000);
+      return; 
     }
     
-    // Если всё ок — обновляем интерфейс
     setProfile({ 
       ...profile, 
       social_tg: editSocials.tg, 
@@ -223,7 +227,9 @@ export default function ProfilePage() {
       avatar_effect: editAvatarEffect
     });
     
-    alert("Настройки кастомизации успешно сохранены в базу!");
+    // ВЫЗЫВАЕМ НАШ СТИЛЬНЫЙ ТОСТ ВМЕСТО ALERT
+    setToast({ text: "Настройки кастомизации успешно сохранены", type: "success" });
+    setTimeout(() => setToast(null), 3000); // Исчезнет через 3 секунды
   };
 
   const handleSaveEditPost = async (postId: string) => {
@@ -693,6 +699,31 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+     <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-10 right-4 sm:right-10 z-[200] flex items-center gap-4 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-xl ${
+              toast.type === 'success' 
+                ? 'bg-zinc-950/90 border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]' 
+                : 'bg-zinc-950/90 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.1)]'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle size={20} className="text-green-500 shrink-0" />
+            ) : (
+              <AlertCircle size={20} className="text-red-500 shrink-0" />
+            )}
+            <span className="text-sm font-inter text-zinc-200">{toast.text}</span>
+            <button onClick={() => setToast(null)} className="ml-2 text-zinc-500 hover:text-white transition-colors shrink-0">
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </main>
   );
 }
