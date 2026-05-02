@@ -1,13 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns:[
+  async rewrites() {
+    return[
       {
-        protocol: 'https',
-        hostname: '**.supabase.co', // Разрешаем кэшировать картинки из БД
+        // Перехватываем все запросы, идущие на /supabase/...
+        source: '/supabase/:path*',
+        // И незаметно перенаправляем их на реальный URL твоего проекта Supabase
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`,
       },
-    ],
+    ];
   },
 };
 
-export default nextConfig; // если у тебя файл .js, напиши module.exports = nextConfig;
+export default nextConfig;
