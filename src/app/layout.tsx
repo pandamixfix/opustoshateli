@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // ДОБАВИЛИ Viewport
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -21,6 +21,14 @@ export const metadata: Metadata = {
   description: "Официальный сайт. Саморазвитие, бизнес, музыка и стиль жизни.",
 };
 
+// МАГИЯ: Жестко запрещаем мобильным браузерам зумить экран при клике
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,7 +36,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={`${inter.variable} ${playfair.variable} bg-black text-white antialiased pb-24`}>
+      {/* ИСПРАВЛЕНИЕ: pb-[calc(6rem+env(safe-area-inset-bottom))] защищает сайт от нижней полоски айфона */}
+      <body className={`${inter.variable} ${playfair.variable} bg-black text-white antialiased pb-[calc(6rem+env(safe-area-inset-bottom))]`}>
         <SplashScreen />
         <Header />
         <main>{children}</main>

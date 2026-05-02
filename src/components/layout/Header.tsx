@@ -108,7 +108,7 @@ export default function Header() {
       </header>
 
       <div 
-        className={`fixed inset-0 z-55 bg-black/95 backdrop-blur-xl md:hidden transition-all duration-500 ease-in-out flex flex-col justify-center px-8 ${
+        className={`fixed inset-0 z-55 bg-black/95 backdrop-blur-xl md:hidden transition-all duration-500 ease-in-out flex flex-col justify-center px-8 h-dvh pb-[env(safe-area-inset-bottom)] ${
           isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
