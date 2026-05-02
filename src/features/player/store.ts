@@ -8,7 +8,8 @@ export interface Track {
   id: string;
   title: string;
   url: string;
-  // ...остальные поля
+  cover_url: string; 
+  artist: string;
 }
 
 interface PlayerState {
