@@ -184,7 +184,9 @@ export default function ProfilePage() {
 
   const handleSaveCustomization = async () => {
     if (!profile) return;
-    await supabase.from("profiles").update({ 
+    
+    // Пытаемся отправить данные в Supabase и ловим ошибку, если она есть
+    const { error } = await supabase.from("profiles").update({ 
       social_tg: editSocials.tg, 
       social_twitch: editSocials.twitch, 
       social_yt: editSocials.yt,
@@ -197,7 +199,15 @@ export default function ProfilePage() {
       card_color: editCardColor,
       avatar_effect: editAvatarEffect
     }).eq("id", profile.id);
+
+    // Если база данных отклонила сохранение — показываем реальную ошибку
+    if (error) {
+      console.error("Ошибка БД при сохранении:", error.message);
+      alert("Ошибка сохранения: " + error.message);
+      return; // Останавливаем выполнение, чтобы визуал не обманывал
+    }
     
+    // Если всё ок — обновляем интерфейс
     setProfile({ 
       ...profile, 
       social_tg: editSocials.tg, 
@@ -212,7 +222,8 @@ export default function ProfilePage() {
       card_color: editCardColor,
       avatar_effect: editAvatarEffect
     });
-    alert("Настройки кастомизации успешно сохранены!");
+    
+    alert("Настройки кастомизации успешно сохранены в базу!");
   };
 
   const handleSaveEditPost = async (postId: string) => {
