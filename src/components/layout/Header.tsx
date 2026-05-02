@@ -9,6 +9,7 @@ import { createClient, toProxyUrl } from "../../lib/supabase";
 interface UserProfile {
   display_name: string;
   avatar_url: string;
+  role: string;
 }
 
 export default function Header() {
@@ -20,7 +21,7 @@ export default function Header() {
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', session.user.id).maybeSingle();
+        const { data } = await supabase.from('profiles').select('display_name, avatar_url, role').eq('id', session.user.id).maybeSingle();
         if (data) {
           setProfile({
             ...data,
@@ -44,7 +45,7 @@ export default function Header() {
       authListener.subscription.unsubscribe(); 
       window.removeEventListener('profileUpdated', fetchSession);
     };
-  },[supabase]);
+  }, [supabase]);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -66,6 +67,12 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-10">
+            <button 
+              onClick={() => window.dispatchEvent(new Event('openWelcomeModal'))} 
+              className="text-xs font-inter tracking-widest uppercase text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              О нас
+            </button>
             <Link href="/manifest" className="text-xs font-inter tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
               Манифест
             </Link>
@@ -78,9 +85,12 @@ export default function Header() {
             <Link href="/wall" className="text-xs font-inter tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
               Новости
             </Link>
-            <Link href="/apply" className="text-xs font-inter tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
-              Резидентура
-            </Link>
+
+            {(!profile || profile.role !== 'Опустошатель') && (
+              <Link href="/apply" className="text-xs font-inter tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
+                Резидентура
+              </Link>
+            )}
             
             {profile ? (
               <Link href="/profile" className="flex items-center gap-3 group">
@@ -116,6 +126,14 @@ export default function Header() {
           <Link href="/" onClick={closeMenu} className={`text-4xl font-playfair tracking-widest uppercase text-zinc-100 transition-all duration-500 delay-100 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             Главная
           </Link>
+          
+          <button 
+            onClick={() => { closeMenu(); window.dispatchEvent(new Event('openWelcomeModal')); }} 
+            className={`text-4xl font-playfair text-left tracking-widest uppercase text-zinc-100 transition-all duration-500 delay-150 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}
+          >
+            О нас
+          </button>
+
           <Link href="/manifest" onClick={closeMenu} className={`text-4xl font-playfair tracking-widest uppercase text-zinc-100 transition-all duration-500 delay-150 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             Манифест
           </Link>
@@ -131,9 +149,11 @@ export default function Header() {
 
           <div className={`h-px w-full bg-zinc-800 my-4 transition-all duration-500 delay-300 ${isMenuOpen ? "opacity-100" : "opacity-0"}`}></div>
           
-          <Link href="/apply" onClick={closeMenu} className={`text-sm font-inter tracking-[0.3em] uppercase text-zinc-400 hover:text-white transition-all duration-500 delay-300 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
-            Подать заявку в клуб
-          </Link>
+          {(!profile || profile.role !== 'Опустошатель') && (
+            <Link href="/apply" onClick={closeMenu} className={`text-sm font-inter tracking-[0.3em] uppercase text-zinc-400 hover:text-white transition-all duration-500 delay-300 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+              Подать заявку в клуб
+            </Link>
+          )}
 
           {profile ? (
             <Link href="/profile" onClick={closeMenu} className={`flex items-center gap-4 transition-all duration-500 delay-250 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>

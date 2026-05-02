@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Heart, Send, Trash2, Plus, X, Image as ImageIcon, Video, Music, MessageSquare, Edit2 } from "lucide-react";
 import { type User } from "@supabase/supabase-js";
 import { createClient, toProxyUrl } from "../../../lib/supabase";
-import UserName from "../../../components/shared/UserName"; // ПОДКЛЮЧИЛИ КОМПОНЕНТ
+import UserName from "../../../components/shared/UserName";
 
 interface Author {
   id: string;
@@ -35,18 +35,18 @@ interface Post {
 }
 
 export default function WallPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const[posts, setPosts] = useState<Post[]>([]);
   const[newPostText, setNewPostText] = useState("");
   const[postMedia, setPostMedia] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
+  const[mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const[mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<Author | null>(null);
+  const[userProfile, setUserProfile] = useState<Author | null>(null);
   
   const[loading, setLoading] = useState(true);
   const[isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const[isModalOpen, setIsModalOpen] = useState(false);
   
   const[showComments, setShowComments] = useState<Record<string, boolean>>({});
   const[commentTexts, setCommentTexts] = useState<Record<string, string>>({});
@@ -54,7 +54,7 @@ export default function WallPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const[editingPostId, setEditingPostId] = useState<string | null>(null);
   const[editPostText, setEditPostText] = useState("");
-  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
+  const[expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -63,14 +63,15 @@ export default function WallPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) { window.location.href = "/auth"; return; }
-        setCurrentUser(session.user);
+        // 1. Проверяем сессию (но НЕ выкидываем, если её нет)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setCurrentUser(session.user);
+          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+          if (profileData) setUserProfile(profileData);
+        }
 
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        if (profileData) setUserProfile(profileData);
-
-        // ВАЖНО: Запрашиваем новые поля name_color, name_font, name_glow, name_effect у базы
+        // 2. Загружаем посты (доступно всем)
         const { data: postsData, error } = await supabase.from("posts")
           .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
           .order("created_at", { ascending: false });
@@ -147,7 +148,12 @@ export default function WallPage() {
   };
 
   const toggleLike = async (postId: string, isLikedByMe: boolean) => {
-    if (!currentUser) return;
+    // Если гость пытается поставить лайк — отправляем на авторизацию
+    if (!currentUser) {
+      router.push('/auth');
+      return;
+    }
+
     setPosts(posts.map(post => {
       if (post.id === postId) {
         if (isLikedByMe) return { ...post, likes: post.likes.filter(l => l.user_id !== currentUser.id) };
@@ -191,7 +197,8 @@ export default function WallPage() {
             <p className="text-center text-zinc-600 text-xs font-inter tracking-widest uppercase mt-10">Стена пуста.</p>
           ) : (
             posts.map((post) => {
-              const isLikedByMe = post.likes.some((like) => like.user_id === currentUser?.id);
+              // Если гость, то его лайка точно нет
+              const isLikedByMe = currentUser ? post.likes.some((like) => like.user_id === currentUser.id) : false;
               const isCommentsOpen = showComments[post.id];
               const postDate = new Date(post.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
@@ -206,7 +213,6 @@ export default function WallPage() {
                       
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          {/* ВОТ ТУТ КРАСИВЫЙ НИКНЕЙМ АВТОРА ПОСТА */}
                           <Link href={`/profile/${post.profiles?.id}`} className="hover:opacity-80 transition-opacity">
                             <UserName 
                               displayName={post.profiles?.display_name || "Неизвестный"}
@@ -233,7 +239,6 @@ export default function WallPage() {
                     )}
                   </div>
 
-                  {/* ОСТАЛЬНОЕ БЕЗ ИЗМЕНЕНИЙ ДО КОММЕНТАРИЕВ */}
                   {editingPostId === post.id ? (
                     <div className="flex flex-col gap-3 mb-6">
                       <textarea value={editPostText} onChange={(e) => setEditPostText(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 text-sm font-inter text-zinc-200 p-3 focus:outline-none resize-none" rows={4} />
@@ -293,8 +298,6 @@ export default function WallPage() {
                             </Link>
                             <div className="flex flex-col bg-zinc-950/50 p-3 border border-zinc-900 rounded-r-xl rounded-bl-xl w-full">
                               <div className="flex justify-between items-center mb-1">
-                                
-                                {/* ВОТ ТУТ КРАСИВЫЙ НИКНЕЙМ АВТОРА КОММЕНТАРИЯ */}
                                 <Link href={`/profile/${comment.profiles?.id}`} className="hover:opacity-80 transition-opacity">
                                   <UserName 
                                     displayName={comment.profiles?.display_name}
@@ -306,7 +309,6 @@ export default function WallPage() {
                                     className="text-xs tracking-widest uppercase"
                                   />
                                 </Link>
-
                                 <span className="text-[9px] text-zinc-600 font-inter">{new Date(comment.created_at).toLocaleTimeString("ru-RU", {hour: "2-digit", minute: "2-digit"})}</span>
                               </div>
                               <p className="text-xs font-inter text-zinc-400 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
@@ -315,12 +317,21 @@ export default function WallPage() {
                         ))
                       )}
 
-                      <form onSubmit={(e) => handleAddComment(post.id, e)} className="flex items-end gap-3 mt-2">
-                        <div className="relative w-full">
-                          <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({...prev,[post.id]: e.target.value}))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
-                          <button type="submit" disabled={!commentTexts[post.id]?.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors disabled:opacity-50"><Send size={14} /></button>
+                      {/* Если авторизован - показываем форму. Если нет - просим войти */}
+                      {currentUser ? (
+                        <form onSubmit={(e) => handleAddComment(post.id, e)} className="flex items-end gap-3 mt-2">
+                          <div className="relative w-full">
+                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({...prev,[post.id]: e.target.value}))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
+                            <button type="submit" disabled={!commentTexts[post.id]?.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors disabled:opacity-50"><Send size={14} /></button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="mt-2 text-center p-3 border border-zinc-900 bg-zinc-950/50">
+                          <Link href="/auth" className="text-[10px] font-inter text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">
+                            Войдите, чтобы оставить комментарий
+                          </Link>
                         </div>
-                      </form>
+                      )}
                     </div>
                   )}
                 </div>

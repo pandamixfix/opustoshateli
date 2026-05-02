@@ -16,6 +16,7 @@ import "./globals.css";
 import Header from "../components/layout/Header";
 import GlobalPlayer from "../components/layout/GlobalPlayer";
 import SplashScreen from "../components/layout/SplashScreen";
+import WelcomeModal from "../components/shared/WelcomeModal";
 
 // === БАЗОВЫЕ ===
 const playfair = Playfair_Display({ subsets:["latin", "cyrillic"], variable: "--font-playfair" });
@@ -60,6 +61,7 @@ export default function RootLayout({
       `}>
         <SplashScreen />
         <Header />
+        <WelcomeModal />
         <main>{children}</main>
         <GlobalPlayer />
       </body>

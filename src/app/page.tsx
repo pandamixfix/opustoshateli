@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MemberCard from "../components/shared/MemberCard";
 
+
 const MEMBERS =[
   {
     id: 1,

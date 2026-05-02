@@ -378,19 +378,35 @@ export default function ProfilePage() {
 
               {/* СТАТУС ОБО МНЕ */}
               <div className="mt-6 p-4 rounded-xl bg-black/40 border border-white/5 w-full max-w-md shadow-inner">
-                <h3 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500 mb-2">Обо мне</h3>
-                {isEditingStatus ? (
-                  <div className="flex items-center border-b border-zinc-500 pb-1">
-                    <input type="text" value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="bg-transparent text-sm font-inter text-zinc-200 outline-none w-full" autoFocus />
-                    <button onClick={handleSaveStatus} className="text-green-500 hover:text-green-400 ml-2 shrink-0"><Check size={16} /></button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between group relative">
-                    <span className="text-sm font-inter text-zinc-300">{profile.status || "Расскажите о себе..."}</span>
-                    <button onClick={() => setIsEditingStatus(true)} className="text-zinc-500 hover:text-white transition-all p-2 -m-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Обо мне</h3>
+                  {!isEditingStatus && (
+                    <button 
+                      onClick={() => setIsEditingStatus(true)} 
+                      className="text-zinc-500 hover:text-white transition-colors p-1 shrink-0"
+                    >
                       <Edit2 size={14} />
                     </button>
+                  )}
+                </div>
+                
+                {isEditingStatus ? (
+                  <div className="flex items-center border-b border-zinc-500 pb-1">
+                    <input 
+                      type="text" 
+                      value={newStatus} 
+                      onChange={(e) => setNewStatus(e.target.value)} 
+                      className="bg-transparent text-sm font-inter text-zinc-200 outline-none w-full" 
+                      autoFocus 
+                    />
+                    <button onClick={handleSaveStatus} className="text-green-500 hover:text-green-400 ml-2 shrink-0">
+                      <Check size={16} />
+                    </button>
                   </div>
+                ) : (
+                  <span className="text-sm font-inter text-zinc-300 block whitespace-pre-wrap break-words">
+                    {profile.status || "Расскажите о себе..."}
+                  </span>
                 )}
               </div>
 
