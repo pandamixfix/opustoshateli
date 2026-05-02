@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LayoutDashboard, UserPlus, UserMinus, Users, Maximize2, X, Send, Gamepad2, MonitorPlay, Crown, Shield, Sparkles, PaintBucket } from "lucide-react";
 import { createClient, toProxyUrl } from "../../../../lib/supabase";
-import UserName from "../../../components/shared/UserName";
+import UserName from "../../../../components/shared/UserName";
 
 interface UserProfile {
   id: string;
