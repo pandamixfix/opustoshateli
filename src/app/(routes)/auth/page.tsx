@@ -119,7 +119,7 @@ export default function AuthPage() {
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {avatarPreview ? (
-                    <Image src={avatarPreview} alt="Avatar" fill className="object-cover" unoptimized />
+                    <Image src={avatarPreview} alt="Avatar" fill className="object-cover" />
                   ) : (
                     <Upload size={24} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" />
                   )}

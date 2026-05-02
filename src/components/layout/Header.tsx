@@ -44,7 +44,7 @@ export default function Header() {
       authListener.subscription.unsubscribe(); 
       window.removeEventListener('profileUpdated', fetchSession);
     };
-  },[]);
+  },[supabase]);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -88,7 +88,7 @@ export default function Header() {
                   {profile.display_name}
                 </span>
                 <div className="relative w-8 h-8 rounded-full overflow-hidden border border-zinc-700 group-hover:border-zinc-400 transition-colors">
-                  <Image src={profile.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" unoptimized/>
+                  <Image src={profile.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px"/>
                 </div>
               </Link>
             ) : (
@@ -138,7 +138,7 @@ export default function Header() {
           {profile ? (
             <Link href="/profile" onClick={closeMenu} className={`flex items-center gap-4 transition-all duration-500 delay-250 ${isMenuOpen ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-700">
-                  <Image src={profile.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="48px" unoptimized/>
+                  <Image src={profile.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="48px"/>
                 </div>
                 <span className="text-2xl font-playfair tracking-widest uppercase text-zinc-100">
                   Кабинет

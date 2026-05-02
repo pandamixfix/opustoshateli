@@ -297,7 +297,7 @@ export default function ProfilePage() {
       
       {profile.bg_image_url && (
         <div className="fixed inset-0 z-0">
-          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
+          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" style={{ objectPosition: `center ${displayBgPositionY}%` }} />
           <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/60 to-black/90"></div>
         </div>
       )}
@@ -311,7 +311,7 @@ export default function ProfilePage() {
           {/* БАННЕР */}
           <div className="relative w-full h-40 sm:h-56 bg-zinc-900 group/banner">
             {profile.bg_image_url ? (
-              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
+              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} />
             ) : (
               <div className="w-full h-full bg-black/40"></div>
             )}
@@ -330,7 +330,7 @@ export default function ProfilePage() {
                 className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar ${avatarFxClass} ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                 style={{ '--fx-color': themeColor } as React.CSSProperties}
               >
-                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px" unoptimized />
+                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px"/>
                 <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-300 cursor-pointer z-20">
                   <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 hover:text-zinc-300 transition-colors">
                     <Camera size={14} className="text-white" /> <span className="text-[8px] uppercase tracking-widest text-white">Изменить</span>
@@ -467,7 +467,7 @@ export default function ProfilePage() {
                     
                     {post.media_url && post.media_type === 'image' && (
                       <div className="relative w-full aspect-video border border-zinc-800 rounded-lg bg-black mt-2 cursor-pointer overflow-hidden" onClick={() => setSelectedImage(toProxyUrl(post.media_url))}>
-                        <Image src={toProxyUrl(post.media_url)!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" unoptimized />
+                        <Image src={toProxyUrl(post.media_url)!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" />
                       </div>
                     )}
                   </div>
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                    searchResults.map(user => (
                      <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-lg transition-colors">
                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800">
-                         <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                         <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                        </div>
                        <div className="flex flex-col">
                          <span className="text-sm font-playfair tracking-wider text-zinc-200 uppercase">{user.display_name}</span>
@@ -512,7 +512,7 @@ export default function ProfilePage() {
                  {following.map(user => (
                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
@@ -527,7 +527,7 @@ export default function ProfilePage() {
                  {followers.map(user => (
                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
@@ -629,7 +629,7 @@ export default function ProfilePage() {
                       <label className="text-xs font-inter text-zinc-400 w-24">Свечение:</label>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" checked={editNameGlow} onChange={e => setEditNameGlow(e.target.checked)} className="sr-only peer" />
-                        <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                        <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                       </label>
                     </div>
                   </div>
@@ -695,7 +695,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" />
           </div>
         </div>
       )}
@@ -705,7 +705,7 @@ export default function ProfilePage() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className={`fixed bottom-10 right-4 sm:right-10 z-[200] flex items-center gap-4 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-xl ${
+            className={`fixed bottom-10 right-4 sm:right-10 z-200 flex items-center gap-4 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-xl ${
               toast.type === 'success' 
                 ? 'bg-zinc-950/90 border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]' 
                 : 'bg-zinc-950/90 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.1)]'

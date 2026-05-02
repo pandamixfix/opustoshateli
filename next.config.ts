@@ -4,20 +4,10 @@ const nextConfig = {
     remotePatterns:[
       {
         protocol: 'https',
-        hostname: 'guvgbfgtdrsvobkndbzl.supabase.co',
-        pathname: '/**',
+        hostname: '**.supabase.co', // Разрешаем кэшировать картинки из БД
       },
     ],
   },
-  // МАГИЯ ПРОКСИРОВАНИЯ (Обход блокировок без VPN)
-  async rewrites() {
-    return[
-      {
-        source: '/supabase/:path*',
-        destination: 'https://guvgbfgtdrsvobkndbzl.supabase.co/:path*',
-      },
-    ];
-  },
 };
 
-export default nextConfig;
+export default nextConfig; // если у тебя файл .js, напиши module.exports = nextConfig;

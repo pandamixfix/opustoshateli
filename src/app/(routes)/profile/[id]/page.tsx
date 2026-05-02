@@ -167,7 +167,7 @@ export default function UserProfilePage() {
       
       {profile.bg_image_url && (
         <div className="fixed inset-0 z-0">
-          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
+          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" style={{ objectPosition: `center ${displayBgPositionY}%` }} />
           <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/60 to-black/90"></div>
         </div>
       )}
@@ -180,7 +180,7 @@ export default function UserProfilePage() {
           {/* БАННЕР */}
           <div className="relative w-full h-40 sm:h-56 bg-zinc-900">
             {profile.bg_image_url ? (
-              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
+              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} />
             ) : (
               <div className="w-full h-full bg-black/40"></div>
             )}
@@ -195,7 +195,7 @@ export default function UserProfilePage() {
                 onClick={() => setSelectedImage(profile.avatar_url)}
                 style={{ '--fx-color': themeColor } as React.CSSProperties}
               >
-                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px" unoptimized />
+                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px" />
                 <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center transition-all duration-300 z-20">
                   <Maximize2 size={24} className="text-white mb-2" />
                   <span className="text-[10px] uppercase tracking-widest text-white text-center">Открыть</span>
@@ -295,7 +295,7 @@ export default function UserProfilePage() {
                     </div>
                     {post.media_url && post.media_type === 'image' && (
                       <div className="relative w-full aspect-video border border-zinc-800 rounded-lg bg-black mt-2 cursor-pointer overflow-hidden" onClick={() => setSelectedImage(toProxyUrl(post.media_url))}>
-                        <Image src={toProxyUrl(post.media_url)!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" unoptimized/>
+                        <Image src={toProxyUrl(post.media_url)!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105"/>
                       </div>
                     )}
                   </div>
@@ -313,7 +313,7 @@ export default function UserProfilePage() {
                 {following.map(user => (
                   <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-2 rounded-lg border border-white/5">
                     <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                      <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                      <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" />
                     </div>
                     <div className="flex flex-col">
                      <UserName 
@@ -336,7 +336,7 @@ export default function UserProfilePage() {
                 {followers.map(user => (
                   <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-2 rounded-lg border border-white/5">
                     <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                      <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                      <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                     </div>
                     <div className="flex flex-col">
                       <UserName 
@@ -361,7 +361,7 @@ export default function UserProfilePage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw"/>
           </div>
         </div>
       )}
