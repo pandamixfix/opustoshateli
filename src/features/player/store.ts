@@ -1,26 +1,11 @@
 import { create } from "zustand";
 import { Track } from "../../types";
 
-export const PLAYLIST: Track[] =[
-  {
-    id: 1,
-    title: "мирный трепчик",
-    artist: "Stepak4k",
-    src: "/music/track1.mp3", 
-    coverUrl: "/stepa.jpg",
-  },
-  {
-    id: 2,
-    title: "Я не понимаю",
-    artist: "Aloneyng",
-    src: "/music/track2.MP3",
-    coverUrl: "/denya.jpg",
-  }
-];
-
 interface PlayerStore {
+  tracks: Track[];
   currentTrackIndex: number;
   isPlaying: boolean;
+  setTracks: (tracks: Track[]) => void;
   playTrack: (index: number) => void;
   togglePlay: () => void;
   setPlaying: (playing: boolean) => void;
@@ -29,8 +14,11 @@ interface PlayerStore {
 }
 
 export const usePlayerStore = create<PlayerStore>()((set) => ({
+  tracks:[],
   currentTrackIndex: 0,
   isPlaying: false,
+  
+  setTracks: (tracks) => set({ tracks }),
   
   playTrack: (index) => set({ currentTrackIndex: index, isPlaying: true }),
   
@@ -38,13 +26,19 @@ export const usePlayerStore = create<PlayerStore>()((set) => ({
   
   setPlaying: (playing) => set({ isPlaying: playing }),
   
-  nextTrack: () => set((state) => ({ 
-    currentTrackIndex: state.currentTrackIndex === PLAYLIST.length - 1 ? 0 : state.currentTrackIndex + 1, 
-    isPlaying: true 
-  })),
+  nextTrack: () => set((state) => {
+    if (state.tracks.length === 0) return { isPlaying: false };
+    return { 
+      currentTrackIndex: state.currentTrackIndex === state.tracks.length - 1 ? 0 : state.currentTrackIndex + 1, 
+      isPlaying: true 
+    };
+  }),
   
-  prevTrack: () => set((state) => ({ 
-    currentTrackIndex: state.currentTrackIndex === 0 ? PLAYLIST.length - 1 : state.currentTrackIndex - 1, 
-    isPlaying: true 
-  })),
+  prevTrack: () => set((state) => {
+    if (state.tracks.length === 0) return { isPlaying: false };
+    return { 
+      currentTrackIndex: state.currentTrackIndex === 0 ? state.tracks.length - 1 : state.currentTrackIndex - 1, 
+      isPlaying: true 
+    };
+  }),
 }));

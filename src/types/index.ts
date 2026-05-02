@@ -1,7 +1,7 @@
 export interface Track {
-  id: number;
+  id: string;
   title: string;
   artist: string;
   src: string;
-  coverUrl: string;
+  cover_url: string;
 }
