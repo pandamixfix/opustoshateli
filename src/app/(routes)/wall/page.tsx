@@ -35,26 +35,26 @@ interface Post {
 }
 
 export default function WallPage() {
-  const[posts, setPosts] = useState<Post[]>([]);
-  const[newPostText, setNewPostText] = useState("");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [newPostText, setNewPostText] = useState("");
   const[postMedia, setPostMedia] = useState<File | null>(null);
-  const[mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const[mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const[userProfile, setUserProfile] = useState<Author | null>(null);
+  const [userProfile, setUserProfile] = useState<Author | null>(null);
   
-  const[loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const[isSubmitting, setIsSubmitting] = useState(false);
-  const[isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const[showComments, setShowComments] = useState<Record<string, boolean>>({});
-  const[commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const[editingPostId, setEditingPostId] = useState<string | null>(null);
   const[editPostText, setEditPostText] = useState("");
-  const[expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
+  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -63,7 +63,6 @@ export default function WallPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1. Проверяем сессию (но НЕ выкидываем, если её нет)
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setCurrentUser(session.user);
@@ -71,7 +70,6 @@ export default function WallPage() {
           if (profileData) setUserProfile(profileData);
         }
 
-        // 2. Загружаем посты (доступно всем)
         const { data: postsData, error } = await supabase.from("posts")
           .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
           .order("created_at", { ascending: false });
@@ -82,9 +80,30 @@ export default function WallPage() {
           }));
           setPosts(formattedPosts);
         }
-      } catch (e) { console.error(e); } finally { setLoading(false); }
+      } catch (e) { 
+        console.error(e); 
+      } finally { 
+        setLoading(false); 
+      }
     }
+
     fetchData();
+
+    const channel = supabase.channel('wall-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [router, supabase]);
 
   const canPost = userProfile?.role === 'Опустошатель';
@@ -148,7 +167,6 @@ export default function WallPage() {
   };
 
   const toggleLike = async (postId: string, isLikedByMe: boolean) => {
-    // Если гость пытается поставить лайк — отправляем на авторизацию
     if (!currentUser) {
       router.push('/auth');
       return;
@@ -157,7 +175,7 @@ export default function WallPage() {
     setPosts(posts.map(post => {
       if (post.id === postId) {
         if (isLikedByMe) return { ...post, likes: post.likes.filter(l => l.user_id !== currentUser.id) };
-        return { ...post, likes: [...post.likes, { user_id: currentUser.id }] };
+        return { ...post, likes:[...post.likes, { user_id: currentUser.id }] };
       }
       return post;
     }));
@@ -197,7 +215,6 @@ export default function WallPage() {
             <p className="text-center text-zinc-600 text-xs font-inter tracking-widest uppercase mt-10">Стена пуста.</p>
           ) : (
             posts.map((post) => {
-              // Если гость, то его лайка точно нет
               const isLikedByMe = currentUser ? post.likes.some((like) => like.user_id === currentUser.id) : false;
               const isCommentsOpen = showComments[post.id];
               const postDate = new Date(post.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -252,7 +269,7 @@ export default function WallPage() {
                       <div className="relative mb-6">
                         <p className={`text-sm font-inter text-zinc-300 leading-relaxed whitespace-pre-wrap ${expandedPosts[post.id] ? '' : 'line-clamp-6'}`}>{post.content}</p>
                         {!expandedPosts[post.id] && post.content.length > 200 && (
-                          <button onClick={() => setExpandedPosts(prev => ({...prev, [post.id]: true}))} className="text-[10px] font-inter uppercase tracking-widest text-zinc-500 hover:text-white mt-2 transition-colors">Читать полностью...</button>
+                          <button onClick={() => setExpandedPosts(prev => ({ ...prev,[post.id]: true }))} className="text-[10px] font-inter uppercase tracking-widest text-zinc-500 hover:text-white mt-2 transition-colors">Читать полностью...</button>
                         )}
                       </div>
                     )
@@ -280,7 +297,7 @@ export default function WallPage() {
                       <span className="text-xs font-inter">{post.likes.length > 0 ? post.likes.length : ""}</span>
                     </button>
                     
-                    <button onClick={() => setShowComments(prev => ({...prev,[post.id]: !prev[post.id]}))} className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-300"}`}>
+                    <button onClick={() => setShowComments(prev => ({ ...prev,[post.id]: !prev[post.id] }))} className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-300"}`}>
                       <MessageSquare size={18} />
                       <span className="text-xs font-inter">{post.comments?.length > 0 ? post.comments.length : ""}</span>
                     </button>
@@ -309,7 +326,7 @@ export default function WallPage() {
                                     className="text-xs tracking-widest uppercase"
                                   />
                                 </Link>
-                                <span className="text-[9px] text-zinc-600 font-inter">{new Date(comment.created_at).toLocaleTimeString("ru-RU", {hour: "2-digit", minute: "2-digit"})}</span>
+                                <span className="text-[9px] text-zinc-600 font-inter">{new Date(comment.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
                               </div>
                               <p className="text-xs font-inter text-zinc-400 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
                             </div>
@@ -317,11 +334,10 @@ export default function WallPage() {
                         ))
                       )}
 
-                      {/* Если авторизован - показываем форму. Если нет - просим войти */}
                       {currentUser ? (
                         <form onSubmit={(e) => handleAddComment(post.id, e)} className="flex items-end gap-3 mt-2">
                           <div className="relative w-full">
-                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({...prev,[post.id]: e.target.value}))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
+                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
                             <button type="submit" disabled={!commentTexts[post.id]?.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors disabled:opacity-50"><Send size={14} /></button>
                           </div>
                         </form>
