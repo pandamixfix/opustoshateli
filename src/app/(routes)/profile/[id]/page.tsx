@@ -19,6 +19,13 @@ interface UserProfile {
   social_yt?: string;
   bg_color?: string;
   bg_image_url?: string;
+  name_color?: string;
+  name_font?: string;
+  name_glow?: boolean;
+  bg_position_y?: number;
+  name_effect?: string;
+  card_color?: string;
+  avatar_effect?: string;
 }
 
 interface Post { id: string; content: string; media_url?: string | null; media_type?: 'image' | 'video' | 'audio' | null; created_at: string; }
@@ -33,7 +40,7 @@ export default function UserProfilePage() {
   const[currentUserId, setCurrentUserId] = useState<string | null>(null);
   const[isMyProfile, setIsMyProfile] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(0);
+  const[followersCount, setFollowersCount] = useState(0);
   
   const [loading, setLoading] = useState(true);
   const[selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -114,41 +121,81 @@ export default function UserProfilePage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin"></div></div>;
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-zinc-500 text-sm font-inter tracking-widest uppercase">Пользователь не найден</div>;
 
-  const isAdmin = profile.role === 'Опустошатель';
-  const customColor = profile.bg_color && profile.bg_color !== '#000000' ? profile.bg_color : '#27272a';
+   const isAdmin = profile.role === 'Опустошатель';
+
+  const displayAuraColor = profile.bg_color || "#000000";
+  const displayCardColor = profile.card_color || "#000000";
+  const displayBgPositionY = profile.bg_position_y ?? 50;
+  const displayNameColor = profile.name_color || "#ffffff";
+  const displayNameFont = profile.name_font || "playfair";
+  const displayNameGlow = profile.name_glow || false;
+  const displayEffect = profile.name_effect || "none";
+  const displayAvatarEffect = profile.avatar_effect || "none";
+
+  const themeColor = displayAuraColor !== '#000000' ? displayAuraColor : (isAdmin ? '#f59e0b' : '#ffffff');
+
+  const getFontFamily = (font: string) => {
+    switch (font) {
+      case 'inter': return 'var(--font-inter)';
+      case 'unbounded': return 'var(--font-unbounded)';
+      case 'russo': return 'var(--font-russo)';
+      case 'jura': return 'var(--font-jura)';
+      case 'philosopher': return 'var(--font-philosopher)';
+      case 'caveat': return 'var(--font-caveat)';
+      case 'pacifico': return 'var(--font-pacifico)';
+      case 'amatic': return 'var(--font-amatic)';
+      case 'comfortaa': return 'var(--font-comfortaa)';
+      case 'playfair':
+      default: return 'var(--font-playfair)';
+    }
+  };
+
+  const fxClass = displayEffect === 'gradient' ? 'fx-gradient' : displayEffect === 'electric' ? 'fx-electric' : displayEffect === 'pulse' ? 'fx-pulse' : '';
+  const avatarFxClass = displayAvatarEffect === 'glow' ? 'fx-avatar-glow' : displayAvatarEffect === 'pulse' ? 'fx-avatar-pulse' : displayAvatarEffect === 'orbit' ? 'fx-avatar-orbit' : displayAvatarEffect === 'float' ? 'fx-avatar-float' : '';
+  const baseAdminClass = isAdmin && displayNameColor === "#ffffff" && displayEffect === 'none' ? 'bg-linear-to-r from-amber-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]' : (displayNameColor === "#ffffff" && displayEffect === 'none' ? 'text-white' : '');
+
+  const nameStyle = {
+    color: displayNameColor !== "#ffffff" && displayEffect !== 'gradient' && displayEffect !== 'electric' ? displayNameColor : undefined,
+    fontFamily: getFontFamily(displayNameFont),
+    textShadow: displayNameGlow && displayEffect !== 'electric' && displayEffect !== 'pulse' ? `0 0 15px ${displayNameColor !== "#ffffff" ? displayNameColor : (isAdmin ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.8)')}` : undefined,
+    '--fx-color': displayNameColor !== "#ffffff" ? displayNameColor : (isAdmin ? '#f59e0b' : '#ffffff')
+  } as React.CSSProperties;
 
   return (
     <main className="min-h-screen pt-24 pb-32 relative bg-black">
       
       {profile.bg_image_url && (
         <div className="fixed inset-0 z-0">
-          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" unoptimized />
+          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
           <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/60 to-black/90"></div>
         </div>
       )}
 
-      {/* 1. DISCORD NITRO PROFILE CARD */}
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-10">
+     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-10 relative z-10">
         <div 
           className={`w-full rounded-2xl overflow-hidden border ${isAdmin ? 'border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.15)]' : 'border-white/10 shadow-2xl'} relative`}
-          style={{ background: `linear-gradient(to bottom, ${customColor}40 0%, #000000 300px)` }}
+          style={{ background: `linear-gradient(to bottom, ${displayAuraColor}80 0%, ${displayCardColor} 200px, ${displayCardColor} 100%)` }}
         >
           {/* БАННЕР */}
           <div className="relative w-full h-40 sm:h-56 bg-zinc-900">
             {profile.bg_image_url ? (
-              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" unoptimized />
+              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
             ) : (
               <div className="w-full h-full bg-black/40"></div>
             )}
           </div>
 
-          {/* КОНТЕНТ КАРТОЧКИ */}
           <div className="px-6 sm:px-10 pb-8 relative">
             <div className="flex justify-between items-start">
-              {/* АВАТАРКА (ВЫРЕЗ) */}
-              <div className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar cursor-pointer`} onClick={() => setSelectedImage(profile.avatar_url)}>
-                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full" sizes="192px" unoptimized />
-                <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center transition-all duration-300">
+              
+              {/* АВАТАРКА С АНИМАЦИЕЙ */}
+              <div 
+                className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar cursor-pointer ${avatarFxClass}`} 
+                onClick={() => setSelectedImage(profile.avatar_url)}
+                style={{ '--fx-color': themeColor } as React.CSSProperties}
+              >
+                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px" unoptimized />
+                <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center transition-all duration-300 z-20">
                   <Maximize2 size={24} className="text-white mb-2" />
                   <span className="text-[10px] uppercase tracking-widest text-white text-center">Открыть</span>
                 </div>
@@ -165,9 +212,11 @@ export default function UserProfilePage() {
               </div>
             </div>
 
-            {/* ИМЯ, БЕЙДЖИ И СТАТУС */}
             <div className="mt-4">
-              <h1 className={`text-3xl sm:text-4xl font-playfair tracking-widest uppercase ${isAdmin ? 'bg-linear-to-r from-amber-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-white'}`}>
+              <h1 
+                className={`text-3xl sm:text-4xl tracking-widest uppercase mb-2 ${baseAdminClass} ${fxClass}`}
+                style={nameStyle}
+              >
                 {profile.display_name}
               </h1>
 
@@ -209,7 +258,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 mt-8 mb-8 border-b border-white/10">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 mt-8 mb-8 border-b border-white/10 relative z-10">
         <div className="flex gap-8">
           <button onClick={() => setActiveTab('posts')} className={`flex items-center gap-2 py-4 text-xs font-inter tracking-[0.2em] uppercase transition-colors relative ${activeTab === 'posts' ? (isAdmin ? 'text-amber-500' : 'text-white') : 'text-zinc-500 hover:text-zinc-300'}`}>
             <LayoutDashboard size={14} /><span>Хроника</span>

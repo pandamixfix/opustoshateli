@@ -20,35 +20,49 @@ interface UserProfile {
   social_yt?: string;
   bg_color?: string;
   bg_image_url?: string;
+  name_color?: string;
+  name_font?: string;
+  name_glow?: boolean;
+  bg_position_y?: number;
+  name_effect?: string;
+  card_color?: string;
+  avatar_effect?: string;
 }
 
 interface Post { id: string; content: string; media_url?: string | null; media_type?: 'image' | 'video' | 'audio' | null; created_at: string; }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const[profile, setProfile] = useState<UserProfile | null>(null);
   const[myPosts, setMyPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
+  const[loading, setLoading] = useState(true);
+  const[isUploading, setIsUploading] = useState(false);
   const[isUploadingBg, setIsUploadingBg] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'posts' | 'friends' | 'settings'>('posts');
+  const[activeTab, setActiveTab] = useState<'posts' | 'friends' | 'settings'>('posts');
   const[settingsTab, setSettingsTab] = useState<'privacy' | 'custom'>('privacy');
   
   const[isEditingStatus, setIsEditingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState("");
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const[selectedImage, setSelectedImage] = useState<string | null>(null);
   const[editingPostId, setEditingPostId] = useState<string | null>(null);
   const[editPostText, setEditPostText] = useState("");
-  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
+  const[expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const[searchQuery, setSearchQuery] = useState("");
   const[searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [followers, setFollowers] = useState<UserProfile[]>([]);
   const [following, setFollowing] = useState<UserProfile[]>([]);
 
   const[editSocials, setEditSocials] = useState({ tg: "", twitch: "", yt: "" });
   const[editBgColor, setEditBgColor] = useState("#000000");
+  const[editNameColor, setEditNameColor] = useState("#ffffff");
+  const[editNameFont, setEditNameFont] = useState("playfair");
+  const[editNameGlow, setEditNameGlow] = useState(false);
+  const[editBgPositionY, setEditBgPositionY] = useState(50);
+  const[editNameEffect, setEditNameEffect] = useState("none");
+  const[editCardColor, setEditCardColor] = useState("#000000");
+  const[editAvatarEffect, setEditAvatarEffect] = useState("none");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +82,13 @@ export default function ProfilePage() {
            setNewStatus(profileData.status || "");
            setEditSocials({ tg: profileData.social_tg || "", twitch: profileData.social_twitch || "", yt: profileData.social_yt || "" });
            setEditBgColor(profileData.bg_color || "#000000");
+           setEditNameColor(profileData.name_color || "#ffffff");
+           setEditNameFont(profileData.name_font || "playfair");
+           setEditNameGlow(profileData.name_glow || false);
+           setEditBgPositionY(profileData.bg_position_y ?? 50);
+           setEditNameEffect(profileData.name_effect || "none");
+           setEditCardColor(profileData.card_color || "#000000");
+           setEditAvatarEffect(profileData.avatar_effect || "none");
         }
 
         const { data: postsData } = await supabase.from("posts").select("id, content, media_url, media_type, created_at").eq("author_id", session.user.id).order("created_at", { ascending: false });
@@ -142,8 +163,9 @@ export default function ProfilePage() {
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage.from("backgrounds").getPublicUrl(fileName);
-      await supabase.from("profiles").update({ bg_image_url: data.publicUrl }).eq("id", profile.id);
-      setProfile({ ...profile, bg_image_url: toProxyUrl(data.publicUrl) || data.publicUrl });
+      await supabase.from("profiles").update({ bg_image_url: data.publicUrl, bg_position_y: 50 }).eq("id", profile.id);
+      setProfile({ ...profile, bg_image_url: toProxyUrl(data.publicUrl) || data.publicUrl, bg_position_y: 50 });
+      setEditBgPositionY(50);
     } catch (err) { console.error(err); } finally { setIsUploadingBg(false); }
   };
 
@@ -166,11 +188,31 @@ export default function ProfilePage() {
       social_tg: editSocials.tg, 
       social_twitch: editSocials.twitch, 
       social_yt: editSocials.yt,
-      bg_color: editBgColor
+      bg_color: editBgColor,
+      name_color: editNameColor,
+      name_font: editNameFont,
+      name_glow: editNameGlow,
+      bg_position_y: editBgPositionY,
+      name_effect: editNameEffect,
+      card_color: editCardColor,
+      avatar_effect: editAvatarEffect
     }).eq("id", profile.id);
     
-    setProfile({ ...profile, social_tg: editSocials.tg, social_twitch: editSocials.twitch, social_yt: editSocials.yt, bg_color: editBgColor });
-    alert("Сохранено!");
+    setProfile({ 
+      ...profile, 
+      social_tg: editSocials.tg, 
+      social_twitch: editSocials.twitch, 
+      social_yt: editSocials.yt, 
+      bg_color: editBgColor,
+      name_color: editNameColor,
+      name_font: editNameFont,
+      name_glow: editNameGlow,
+      bg_position_y: editBgPositionY,
+      name_effect: editNameEffect,
+      card_color: editCardColor,
+      avatar_effect: editAvatarEffect
+    });
+    alert("Настройки кастомизации успешно сохранены!");
   };
 
   const handleSaveEditPost = async (postId: string) => {
@@ -192,15 +234,53 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   const isAdmin = profile.role === 'Опустошатель';
-  const customColor = profile.bg_color && profile.bg_color !== '#000000' ? profile.bg_color : '#27272a';
+
+  // Динамические стили
+  const displayAuraColor = (activeTab === 'settings' && settingsTab === 'custom') ? editBgColor : (profile.bg_color || "#000000");
+  const displayCardColor = (activeTab === 'settings' && settingsTab === 'custom') ? editCardColor : (profile.card_color || "#000000");
+  const displayBgPositionY = (activeTab === 'settings' && settingsTab === 'custom') ? editBgPositionY : (profile.bg_position_y ?? 50);
+  const displayNameColor = (activeTab === 'settings' && settingsTab === 'custom') ? editNameColor : (profile.name_color || "#ffffff");
+  const displayNameFont = (activeTab === 'settings' && settingsTab === 'custom') ? editNameFont : (profile.name_font || "playfair");
+  const displayNameGlow = (activeTab === 'settings' && settingsTab === 'custom') ? editNameGlow : (profile.name_glow || false);
+  const displayEffect = (activeTab === 'settings' && settingsTab === 'custom') ? editNameEffect : (profile.name_effect || "none");
+  const displayAvatarEffect = (activeTab === 'settings' && settingsTab === 'custom') ? editAvatarEffect : (profile.avatar_effect || "none");
+
+  // Тематический цвет для аватара и ауры
+  const themeColor = displayAuraColor !== '#000000' ? displayAuraColor : (isAdmin ? '#f59e0b' : '#ffffff');
+
+  const getFontFamily = (font: string) => {
+    switch (font) {
+      case 'inter': return 'var(--font-inter)';
+      case 'unbounded': return 'var(--font-unbounded)';
+      case 'russo': return 'var(--font-russo)';
+      case 'jura': return 'var(--font-jura)';
+      case 'philosopher': return 'var(--font-philosopher)';
+      case 'caveat': return 'var(--font-caveat)';
+      case 'pacifico': return 'var(--font-pacifico)';
+      case 'amatic': return 'var(--font-amatic)';
+      case 'comfortaa': return 'var(--font-comfortaa)';
+      case 'playfair':
+      default: return 'var(--font-playfair)';
+    }
+  };
+
+  const fxClass = displayEffect === 'gradient' ? 'fx-gradient' : displayEffect === 'electric' ? 'fx-electric' : displayEffect === 'pulse' ? 'fx-pulse' : '';
+  const avatarFxClass = displayAvatarEffect === 'glow' ? 'fx-avatar-glow' : displayAvatarEffect === 'pulse' ? 'fx-avatar-pulse' : displayAvatarEffect === 'orbit' ? 'fx-avatar-orbit' : displayAvatarEffect === 'float' ? 'fx-avatar-float' : '';
+  const baseAdminClass = isAdmin && displayNameColor === "#ffffff" && displayEffect === 'none' ? 'bg-linear-to-r from-amber-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]' : (displayNameColor === "#ffffff" && displayEffect === 'none' ? 'text-white' : '');
+
+  const nameStyle = {
+    color: displayNameColor !== "#ffffff" && displayEffect !== 'gradient' && displayEffect !== 'electric' ? displayNameColor : undefined,
+    fontFamily: getFontFamily(displayNameFont),
+    textShadow: displayNameGlow && displayEffect !== 'electric' && displayEffect !== 'pulse' ? `0 0 15px ${displayNameColor !== "#ffffff" ? displayNameColor : (isAdmin ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.8)')}` : undefined,
+    '--fx-color': displayNameColor !== "#ffffff" ? displayNameColor : (isAdmin ? '#f59e0b' : '#ffffff')
+  } as React.CSSProperties;
 
   return (
     <main className="min-h-screen pt-24 pb-32 relative bg-black">
       
-      {/* ФОН САЙТА ИЗ ПРОФИЛЯ */}
       {profile.bg_image_url && (
         <div className="fixed inset-0 z-0">
-          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" unoptimized />
+          <Image src={profile.bg_image_url} alt="Background" fill className="object-cover opacity-30" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
           <div className="absolute inset-0 bg-linear-to-b from-black/80 via-black/60 to-black/90"></div>
         </div>
       )}
@@ -209,31 +289,32 @@ export default function ProfilePage() {
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-10 relative z-10">
         <div 
           className={`w-full rounded-2xl overflow-hidden border ${isAdmin ? 'border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.15)]' : 'border-white/10 shadow-2xl'} relative`}
-          style={{ background: `linear-gradient(to bottom, ${customColor}40 0%, #000000 300px)` }}
+          style={{ background: `linear-gradient(to bottom, ${displayAuraColor}80 0%, ${displayCardColor} 200px, ${displayCardColor} 100%)` }}
         >
           {/* БАННЕР */}
           <div className="relative w-full h-40 sm:h-56 bg-zinc-900 group/banner">
             {profile.bg_image_url ? (
-              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" unoptimized />
+              <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} unoptimized />
             ) : (
               <div className="w-full h-full bg-black/40"></div>
             )}
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/banner:opacity-100 flex items-center justify-center transition-all duration-300">
                <button onClick={() => bgInputRef.current?.click()} className="flex items-center gap-2 text-white text-xs font-inter tracking-widest uppercase border border-white/20 px-4 py-2 rounded-full hover:bg-white/10 transition-colors">
-                  <ImageIcon size={16} /> {isUploadingBg ? "Загрузка..." : "Изменить баннер"}
+                  <ImageIcon size={16} /> {isUploadingBg ? "Загрузка..." : "Изменить (JPG, GIF, MP4)"}
                </button>
-               {/* Скрытый инпут для баннера */}
                <input type="file" ref={bgInputRef} onChange={handleBgUpload} accept="image/*,video/mp4" className="hidden" />
             </div>
           </div>
 
-          {/* КОНТЕНТ КАРТОЧКИ */}
           <div className="px-6 sm:px-10 pb-8 relative">
             <div className="flex justify-between items-start">
-              {/* АВАТАРКА */}
-              <div className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full" sizes="192px" unoptimized />
-                <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-300 cursor-pointer">
+              {/* АВАТАРКА С АНИМАЦИЕЙ */}
+              <div 
+                className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar ${avatarFxClass} ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                style={{ '--fx-color': themeColor } as React.CSSProperties}
+              >
+                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px" unoptimized />
+                <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-300 cursor-pointer z-20">
                   <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 hover:text-zinc-300 transition-colors">
                     <Camera size={14} className="text-white" /> <span className="text-[8px] uppercase tracking-widest text-white">Изменить</span>
                   </button>
@@ -248,14 +329,17 @@ export default function ProfilePage() {
                  <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Выйти">
                     <LogOut size={18} />
                  </button>
-                 <button onClick={() => setActiveTab('settings')} className="px-4 h-10 rounded-full bg-white/10 text-white text-xs font-inter tracking-widest uppercase hover:bg-white/20 transition-colors border border-white/5">
-                   Редактировать
+                 <button onClick={() => setActiveTab('settings')} className="px-4 h-10 rounded-full bg-white/10 text-white text-xs font-inter tracking-widest uppercase hover:bg-white/20 transition-colors border border-white/5 shadow-md">
+                   Настройки
                  </button>
               </div>
             </div>
 
             <div className="mt-4">
-              <h1 className={`text-3xl sm:text-4xl font-playfair tracking-widest uppercase mb-2 ${isAdmin ? 'bg-linear-to-r from-amber-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-white'}`}>
+              <h1 
+                className={`text-3xl sm:text-4xl tracking-widest uppercase mb-2 ${baseAdminClass} ${fxClass}`}
+                style={nameStyle}
+              >
                 {profile.display_name}
               </h1>
 
@@ -276,7 +360,7 @@ export default function ProfilePage() {
               </div>
 
               {/* СТАТУС ОБО МНЕ */}
-              <div className="mt-6 p-4 rounded-xl bg-black/40 border border-white/5 w-full max-w-md">
+              <div className="mt-6 p-4 rounded-xl bg-black/40 border border-white/5 w-full max-w-md shadow-inner">
                 <h3 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500 mb-2">Обо мне</h3>
                 {isEditingStatus ? (
                   <div className="flex items-center border-b border-zinc-500 pb-1">
@@ -299,12 +383,12 @@ export default function ProfilePage() {
                   {profile.social_twitch && <Link href={profile.social_twitch} target="_blank" className="flex items-center gap-2 text-xs font-inter uppercase text-zinc-400 hover:text-purple-400 transition-colors bg-white/5 px-3 py-1.5 rounded-md border border-white/5"><Gamepad2 size={14}/> Twitch</Link>}
                   {profile.social_yt && <Link href={profile.social_yt} target="_blank" className="flex items-center gap-2 text-xs font-inter uppercase text-zinc-400 hover:text-red-500 transition-colors bg-white/5 px-3 py-1.5 rounded-md border border-white/5"><MonitorPlay size={14}/> YouTube</Link>}
               </div>
-
             </div>
           </div>
         </div>
       </div>
 
+      {/* ОСТАЛЬНОЙ КОД БЕЗ ИЗМЕНЕНИЙ (Навигация, посты и т.д.) */}
       {/* 2. НАВИГАЦИЯ */}
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 mt-8 mb-8 border-b border-white/10 relative z-10">
         <div className="flex gap-8">
@@ -377,66 +461,66 @@ export default function ProfilePage() {
         )}
 
         {activeTab === 'friends' && (
-          <div className="flex flex-col gap-12">
-            <div className="w-full max-w-xl">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
-                <input type="text" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} placeholder="Поиск по никнейму..." className="w-full bg-black/60 backdrop-blur-sm border border-white/5 rounded-xl py-4 pl-12 pr-4 text-sm font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none transition-colors" />
-              </div>
-              {searchQuery.trim() !== "" && (
-                <div className="mt-4 flex flex-col gap-2 bg-black border border-white/5 rounded-xl p-2">
-                  {searchResults.length === 0 ? (
-                    <div className="p-4 text-xs font-inter tracking-widest uppercase text-zinc-600 text-center">Ничего не найдено</div>
-                  ) : (
-                    searchResults.map(user => (
-                      <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-lg transition-colors">
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800">
-                          <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-playfair tracking-wider text-zinc-200 uppercase">{user.display_name}</span>
-                          <span className="text-[10px] font-inter text-zinc-500">{user.role}</span>
-                        </div>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+           <div className="flex flex-col gap-12">
+           <div className="w-full max-w-xl">
+             <div className="relative">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+               <input type="text" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} placeholder="Поиск по никнейму..." className="w-full bg-black/60 backdrop-blur-sm border border-white/5 rounded-xl py-4 pl-12 pr-4 text-sm font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none transition-colors" />
+             </div>
+             {searchQuery.trim() !== "" && (
+               <div className="mt-4 flex flex-col gap-2 bg-black border border-white/5 rounded-xl p-2">
+                 {searchResults.length === 0 ? (
+                   <div className="p-4 text-xs font-inter tracking-widest uppercase text-zinc-600 text-center">Ничего не найдено</div>
+                 ) : (
+                   searchResults.map(user => (
+                     <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-lg transition-colors">
+                       <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800">
+                         <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                       </div>
+                       <div className="flex flex-col">
+                         <span className="text-sm font-playfair tracking-wider text-zinc-200 uppercase">{user.display_name}</span>
+                         <span className="text-[10px] font-inter text-zinc-500">{user.role}</span>
+                       </div>
+                     </Link>
+                   ))
+                 )}
+               </div>
+             )}
+           </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <div>
-                <h3 className="text-xs font-inter uppercase tracking-[0.3em] text-zinc-500 mb-6 border-b border-white/5 pb-2">Мои подписки ({following.length})</h3>
-                <div className="flex flex-col gap-4">
-                  {following.map(user => (
-                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                        <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-xs font-inter uppercase tracking-[0.3em] text-zinc-500 mb-6 border-b border-white/5 pb-2">Подписчики ({followers.length})</h3>
-                <div className="flex flex-col gap-4">
-                  {followers.map(user => (
-                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                        <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+             <div>
+               <h3 className="text-xs font-inter uppercase tracking-[0.3em] text-zinc-500 mb-6 border-b border-white/5 pb-2">Мои подписки ({following.length})</h3>
+               <div className="flex flex-col gap-4">
+                 {following.map(user => (
+                   <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
+                     <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
+                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
+                     </div>
+                   </Link>
+                 ))}
+               </div>
+             </div>
+             <div>
+               <h3 className="text-xs font-inter uppercase tracking-[0.3em] text-zinc-500 mb-6 border-b border-white/5 pb-2">Подписчики ({followers.length})</h3>
+               <div className="flex flex-col gap-4">
+                 {followers.map(user => (
+                   <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
+                     <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
+                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
+                     </div>
+                   </Link>
+                 ))}
+               </div>
+             </div>
+           </div>
+         </div>
         )}
 
         {/* НАСТРОЙКИ */}
@@ -484,22 +568,102 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-4 border-t border-white/5 pt-6">
-                    <h4 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Тема профиля</h4>
+                  <div className="flex flex-col gap-6 border-t border-white/5 pt-6">
+                    <h4 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Никнейм</h4>
                     
                     <div className="flex items-center gap-4">
-                      <label className="text-xs font-inter text-zinc-400">Цвет свечения:</label>
+                      <label className="text-xs font-inter text-zinc-400 w-24">Цвет:</label>
+                      <input type="color" value={editNameColor} onChange={e => setEditNameColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none p-0"/>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <label className="text-xs font-inter text-zinc-400 w-24">Шрифт:</label>
+                      <select value={editNameFont} onChange={e => setEditNameFont(e.target.value)} className="bg-zinc-900 border border-zinc-700 text-xs text-zinc-300 py-1.5 px-3 rounded outline-none focus:border-zinc-500 transition-colors">
+                        <optgroup label="Классика">
+                          <option value="playfair">Playfair (Элегантный)</option>
+                          <option value="inter">Inter (Строгий)</option>
+                        </optgroup>
+                        <optgroup label="Стиль & Дерзость">
+                          <option value="unbounded">Unbounded (Модерн)</option>
+                          <option value="russo">Russo One (Тяжелый)</option>
+                          <option value="jura">Jura (Киберпанк)</option>
+                          <option value="philosopher">Philosopher (Готика)</option>
+                        </optgroup>
+                        <optgroup label="Милота & Эстетика">
+                          <option value="caveat">Caveat (Почерк)</option>
+                          <option value="pacifico">Pacifico (Нежный)</option>
+                          <option value="amatic">Amatic SC (Эстетика)</option>
+                          <option value="comfortaa">Comfortaa (Круглый)</option>
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-4 mt-2">
+                      <label className="text-xs font-inter text-zinc-400 w-24">Эффект:</label>
+                      <select value={editNameEffect} onChange={e => setEditNameEffect(e.target.value)} className="bg-zinc-900 border border-zinc-700 text-xs text-zinc-300 py-1.5 px-3 rounded outline-none focus:border-zinc-500 transition-colors">
+                        <option value="none">Без эффекта</option>
+                        <option value="gradient">Переливающийся градиент</option>
+                        <option value="electric">Электрический разряд</option>
+                        <option value="pulse">Неоновая пульсация</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-4 mt-2">
+                      <label className="text-xs font-inter text-zinc-400 w-24">Свечение:</label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={editNameGlow} onChange={e => setEditNameGlow(e.target.checked)} className="sr-only peer" />
+                        <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* НОВАЯ ГРУППА: АВАТАР */}
+                  <div className="flex flex-col gap-6 border-t border-white/5 pt-6">
+                    <h4 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Аватар</h4>
+                    
+                    <div className="flex items-center gap-4">
+                      <label className="text-xs font-inter text-zinc-400 w-24">Анимация:</label>
+                      <select value={editAvatarEffect} onChange={e => setEditAvatarEffect(e.target.value)} className="bg-zinc-900 border border-zinc-700 text-xs text-zinc-300 py-1.5 px-3 rounded outline-none focus:border-zinc-500 transition-colors">
+                        <option value="none">Без анимации</option>
+                        <option value="glow">Статичное свечение</option>
+                        <option value="pulse">Пульсация (Дыхание)</option>
+                        <option value="orbit">Орбита (Вращение колец)</option>
+                        <option value="float">Парение (Левитация)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ОБНОВЛЕННАЯ ГРУППА ФОНА */}
+                  <div className="flex flex-col gap-6 border-t border-white/5 pt-6">
+                    <h4 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Оформление фона</h4>
+                    
+                    <div className="flex items-center gap-4 mb-2">
+                      <label className="text-xs font-inter text-zinc-400 w-24">Аура сверху:</label>
                       <input type="color" value={editBgColor} onChange={e => setEditBgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none p-0"/>
                     </div>
 
-                    <div className="flex gap-4 items-center mt-2">
-                       <button onClick={() => handleSaveCustomization()} className={`px-4 py-2 text-[10px] rounded-lg font-inter tracking-widest uppercase transition-all ${isAdmin ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-white hover:bg-zinc-200 text-black'}`}>
-                         Сохранить цвет
+                    <div className="flex items-center gap-4 mb-2">
+                      <label className="text-xs font-inter text-zinc-400 w-24">Заливка снизу:</label>
+                      <input type="color" value={editCardColor} onChange={e => setEditCardColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none p-0"/>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-inter text-zinc-400">Смещение баннера</span>
+                        <span className="text-xs font-inter text-zinc-500">{editBgPositionY}%</span>
+                      </div>
+                      <input type="range" min="0" max="100" value={editBgPositionY} onChange={e => setEditBgPositionY(Number(e.target.value))} className="w-full h-1 bg-zinc-800 rounded-none appearance-none cursor-pointer accent-amber-500" />
+                      <span className="text-[10px] text-zinc-600 font-inter">Двигайте ползунок, чтобы выровнять картинку или GIF-баннер по вертикали.</span>
+                    </div>
+
+                    <div className="flex gap-4 items-center mt-6 pt-6 border-t border-white/5">
+                       <button onClick={() => handleSaveCustomization()} className={`px-6 py-3 text-xs rounded-lg font-inter tracking-widest uppercase transition-all ${isAdmin ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-white hover:bg-zinc-200 text-black'}`}>
+                         Сохранить настройки
                        </button>
                     </div>
 
                     {profile.bg_image_url && (
-                       <button onClick={handleRemoveBg} className="text-[10px] font-inter text-red-500 hover:text-red-400 uppercase tracking-widest w-fit mt-2">Удалить баннер</button>
+                       <button onClick={handleRemoveBg} className="text-[10px] font-inter text-red-500 hover:text-red-400 uppercase tracking-widest w-fit mt-2">Удалить изображение баннера</button>
                     )}
                   </div>
                 </div>
