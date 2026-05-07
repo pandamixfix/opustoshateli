@@ -37,7 +37,7 @@ interface Post {
 export default function WallPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostText, setNewPostText] = useState("");
-  const[postMedia, setPostMedia] = useState<File | null>(null);
+  const [postMedia, setPostMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   
@@ -45,15 +45,15 @@ export default function WallPage() {
   const [userProfile, setUserProfile] = useState<Author | null>(null);
   
   const [loading, setLoading] = useState(true);
-  const[isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const[showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const[editingPostId, setEditingPostId] = useState<string | null>(null);
-  const[editPostText, setEditPostText] = useState("");
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editPostText, setEditPostText] = useState("");
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,7 +63,7 @@ export default function WallPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (session) {
           setCurrentUser(session.user);
           const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
@@ -88,22 +88,7 @@ export default function WallPage() {
     }
 
     fetchData();
-
-    const channel = supabase.channel('wall-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        fetchData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-        fetchData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
-        fetchData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Мы удалили supabase.channel(...), чтобы избежать ошибок WebSocket (wss://) через прокси Vercel
   }, [router, supabase]);
 
   const canPost = userProfile?.role === 'Опустошатель';
@@ -225,7 +210,7 @@ export default function WallPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 cursor-pointer hover:border-zinc-500 transition-colors" onClick={() => setSelectedImage(toProxyUrl(post.profiles?.avatar_url))}>
-                        <Image src={toProxyUrl(post.profiles?.avatar_url) || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority />
+                        <Image src={toProxyUrl(post.profiles?.avatar_url) || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority unoptimized />
                       </div>
                       
                       <div className="flex flex-col">
@@ -277,7 +262,7 @@ export default function WallPage() {
                   
                   {post.media_url && post.media_type === 'image' && (
                     <div className="relative w-full aspect-video border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden cursor-pointer" onClick={() => setSelectedImage(toProxyUrl(post.media_url))}>
-                      <Image src={toProxyUrl(post.media_url)!} alt="Медиа поста" fill className="object-contain"/>
+                      <Image src={toProxyUrl(post.media_url)!} alt="Медиа поста" fill className="object-contain" unoptimized />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'video' && (
@@ -311,7 +296,7 @@ export default function WallPage() {
                         post.comments?.map(comment => (
                           <div key={comment.id} className="flex gap-3 items-start">
                             <Link href={`/profile/${comment.profiles?.id}`} className="relative w-8 h-8 rounded-full overflow-hidden border border-zinc-800 shrink-0 hover:border-zinc-500 transition-colors">
-                              <Image src={comment.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" priority/>
+                              <Image src={comment.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" priority unoptimized />
                             </Link>
                             <div className="flex flex-col bg-zinc-950/50 p-3 border border-zinc-900 rounded-r-xl rounded-bl-xl w-full">
                               <div className="flex justify-between items-center mb-1">
@@ -337,7 +322,7 @@ export default function WallPage() {
                       {currentUser ? (
                         <form onSubmit={(e) => handleAddComment(post.id, e)} className="flex items-end gap-3 mt-2">
                           <div className="relative w-full">
-                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
+                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({ ...prev,[post.id]: e.target.value }))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
                             <button type="submit" disabled={!commentTexts[post.id]?.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors disabled:opacity-50"><Send size={14} /></button>
                           </div>
                         </form>
@@ -375,7 +360,7 @@ export default function WallPage() {
               {mediaPreview && (
                 <div className="relative w-full border border-zinc-800 bg-black p-2 flex flex-col items-center justify-center">
                   <button type="button" onClick={clearMedia} className="absolute top-2 right-2 p-1.5 bg-black/80 text-zinc-400 hover:text-white z-10 rounded-full"><X size={16} /></button>
-                  {mediaType === 'image' && <Image src={mediaPreview} alt="Preview" width={400} height={300} className="object-contain max-h-64"/>}
+                  {mediaType === 'image' && <Image src={mediaPreview} alt="Preview" width={400} height={300} className="object-contain max-h-64" unoptimized />}
                   {mediaType === 'video' && <video src={mediaPreview} controls className="max-h-64 w-full" />}
                   {mediaType === 'audio' && <audio src={mediaPreview} controls className="w-full mt-4 mb-4" />}
                 </div>
@@ -401,7 +386,7 @@ export default function WallPage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw"  />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
           </div>
         </div>
       )}

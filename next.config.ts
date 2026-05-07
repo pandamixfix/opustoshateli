@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    unoptimized: true, // МАГИЯ: Полностью отключаем глючный оптимизатор Vercel
     remotePatterns:[
       {
         protocol: 'https',
@@ -21,7 +22,6 @@ const nextConfig = {
   },
 
   // МАГИЯ VERCEL: Бронебойное кэширование
-  // Заставляем сервера Vercel забрать файлы себе и не дергать Supabase!
   async headers() {
     return[
       {
