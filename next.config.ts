@@ -1,29 +1,37 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ДОБАВЛЯЕМ ВОТ ЭТОТ БЛОК:
   images: {
     remotePatterns:[
       {
         protocol: 'https',
-        hostname: '*.supabase.co', // Разрешаем прямые ссылки с Supabase
+        hostname: 'guvgbfgtdrsvobkndbzl.supabase.co',
+        pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'opustoshateli.vercel.app', // Разрешаем твои абсолютные прокси-ссылки
-      },
-      {
-        protocol: 'http',
-        hostname: 'localhost', // На всякий случай для локальной разработки
-      }
     ],
   },
   
-  // Твои редиректы оставляем как есть:
+  // НАШ ПРОКСИ (Обход блокировок)
   async rewrites() {
     return[
       {
         source: '/supabase/:path*',
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`,
+        destination: 'https://guvgbfgtdrsvobkndbzl.supabase.co/:path*',
+      },
+    ];
+  },
+
+  // МАГИЯ VERCEL: Бронебойное кэширование
+  // Заставляем сервера Vercel забрать файлы себе и не дергать Supabase!
+  async headers() {
+    return[
+      {
+        source: '/supabase/:path*',
+        headers:[
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400',
+          },
+        ],
       },
     ];
   },
