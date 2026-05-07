@@ -3,22 +3,25 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ChevronDown } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ChevronDown, Shuffle, Repeat, Repeat1 } from "lucide-react";
 import { usePlayerStore } from "../../features/player/store";
 import { createClient, toProxyUrl } from "../../lib/supabase";
 
 export default function GlobalPlayer() {
-  const { tracks, currentTrackIndex, isPlaying, togglePlay, setPlaying, nextTrack, prevTrack, setTracks } = usePlayerStore();
+  const { 
+    tracks, currentTrackIndex, isPlaying, togglePlay, setPlaying, 
+    nextTrack, prevTrack, setTracks, repeatMode, isShuffle, 
+    toggleRepeat, toggleShuffle 
+  } = usePlayerStore();
   
   const[duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.5);
-  const [isMuted, setIsMuted] = useState(false);
+  const[isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   
-  // ЗАГРУЖАЕМ ТРЕКИ ИЗ БАЗЫ
   useEffect(() => {
     async function loadTracks() {
       const supabase = createClient();
@@ -83,19 +86,24 @@ export default function GlobalPlayer() {
     else document.body.style.overflow = "auto";
   }, [isExpanded]);
 
-  // Если треков нет, плеер просто не показывается
   if (!currentTrack) return null;
 
   return (
     <>
-      <audio ref={audioRef} src={toProxyUrl(currentTrack.src)!} onTimeUpdate={handleTimeUpdate} onEnded={nextTrack} />
+      <audio 
+        ref={audioRef} 
+        src={toProxyUrl(currentTrack.src)!} 
+        onTimeUpdate={handleTimeUpdate} 
+        onEnded={nextTrack} 
+        loop={repeatMode === 'one'}
+      />
 
       <div className={`fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-t border-white/5 px-4 sm:px-6 pt-3 sm:pt-4 pb-[max(env(safe-area-inset-bottom),12px)] sm:pb-4 transition-transform duration-500 ${isExpanded ? "translate-y-full" : "translate-y-0"}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-4 w-[60%] sm:w-1/3 cursor-pointer sm:cursor-default" onClick={() => { if (window.innerWidth < 640) setIsExpanded(true); }}>
             <div className="relative w-10 h-10 sm:w-12 sm:h-12 border border-white/10 shrink-0 overflow-hidden">
-              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="48px" className="object-cover grayscale" />
+              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="48px" className="object-cover grayscale" unoptimized />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-playfair tracking-wider text-zinc-100 uppercase truncate">{currentTrack.title}</span>
@@ -103,12 +111,18 @@ export default function GlobalPlayer() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end sm:justify-center w-[40%] sm:w-1/3 gap-4 sm:gap-6">
+          <div className="flex items-center justify-end sm:justify-center w-[40%] sm:w-1/3 gap-3 sm:gap-5">
+            <button onClick={toggleShuffle} className="hidden sm:block hover:text-white transition-colors">
+              <Shuffle size={16} className={isShuffle ? "text-white" : "text-zinc-600"} />
+            </button>
             <button onClick={prevTrack} className="hidden sm:block text-zinc-500 hover:text-zinc-200 transition-colors"><SkipBack size={18} /></button>
             <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="w-10 h-10 flex items-center justify-center border border-zinc-700 hover:border-zinc-300 text-zinc-300 hover:text-white transition-all rounded-full shrink-0">
               {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-1" />}
             </button>
             <button onClick={nextTrack} className="hidden sm:block text-zinc-500 hover:text-zinc-200 transition-colors"><SkipForward size={18} /></button>
+            <button onClick={toggleRepeat} className="hidden sm:block hover:text-white transition-colors">
+              {repeatMode === 'one' ? <Repeat1 size={16} className="text-white" /> : <Repeat size={16} className={repeatMode === 'all' ? "text-white" : "text-zinc-600"} />}
+            </button>
           </div>
           
           <div className="hidden sm:flex items-center justify-end gap-3 w-1/3">
@@ -127,7 +141,7 @@ export default function GlobalPlayer() {
         {isExpanded && (
           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed top-0 left-0 w-full h-dvh z-100 bg-black flex flex-col sm:hidden">
             <div className="absolute inset-0 z-0 overflow-hidden">
-              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt="bg" fill className="object-cover blur-[80px] opacity-40 scale-125" />
+              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt="bg" fill className="object-cover blur-[80px] opacity-40 scale-125" unoptimized />
               <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/60 to-black"></div>
             </div>
 
@@ -139,7 +153,7 @@ export default function GlobalPlayer() {
               </div>
 
               <motion.div className="relative w-full max-w-[320px] mx-auto aspect-square shadow-2xl mb-8 border border-white/10 shrink-0" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }}>
-                <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="100vw" className="object-cover grayscale"/>
+                <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="100vw" className="object-cover grayscale" unoptimized />
               </motion.div>
 
               <div className="flex flex-col items-center text-center mb-8 shrink-0">
@@ -155,12 +169,18 @@ export default function GlobalPlayer() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-10 mt-auto shrink-0">
+              <div className="flex items-center justify-between w-full max-w-xs mx-auto mt-auto shrink-0 mb-4">
+                <button onClick={toggleShuffle} className="transition-colors active:scale-90 p-2">
+                  <Shuffle size={20} className={isShuffle ? "text-white" : "text-zinc-600"} />
+                </button>
                 <button onClick={prevTrack} className="text-zinc-400 hover:text-white transition-colors active:scale-90"><SkipBack size={32} strokeWidth={1.5} /></button>
                 <button onClick={togglePlay} className="w-20 h-20 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] shrink-0">
                   {isPlaying ? <Pause size={32} className="fill-black" /> : <Play size={32} className="ml-2 fill-black" />}
                 </button>
                 <button onClick={nextTrack} className="text-zinc-400 hover:text-white transition-colors active:scale-90"><SkipForward size={32} strokeWidth={1.5} /></button>
+                <button onClick={toggleRepeat} className="transition-colors active:scale-90 p-2">
+                  {repeatMode === 'one' ? <Repeat1 size={20} className="text-white" /> : <Repeat size={20} className={repeatMode === 'all' ? "text-white" : "text-zinc-600"} />}
+                </button>
               </div>
             </div>
           </motion.div>
