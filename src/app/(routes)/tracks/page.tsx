@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Play, Pause, Plus, X, Upload } from "lucide-react";
 import { usePlayerStore } from "../../../features/player/store";
-import { createClient, toProxyUrl } from "../../../lib/supabase";
+import { createClient } from "../../../lib/supabase";
+import imageCompression from 'browser-image-compression';
+import { uploadFiles } from "../../../lib/uploadthing";
 
 export default function TracksPage() {
   const { tracks, currentTrackIndex, isPlaying, playTrack, togglePlay, setTracks } = usePlayerStore();
@@ -38,18 +40,16 @@ export default function TracksPage() {
     setIsUploading(true);
 
     try {
-      const audioExt = audioFile.name.split('.').pop();
-      const audioName = `track-${Date.now()}.${audioExt}`;
-      const { error: audioErr } = await supabase.storage.from('tracks').upload(audioName, audioFile);
-      if (audioErr) throw audioErr;
-      const audioUrl = supabase.storage.from('tracks').getPublicUrl(audioName).data.publicUrl;
+      // 1. Сжимаем и загружаем обложку
+      const compressedCover = await imageCompression(coverFile, { maxSizeMB: 0.2, maxWidthOrHeight: 1080 });
+      const coverRes = await uploadFiles("mediaPost", { files: [compressedCover] });
+      const coverUrl = coverRes[0].url;
 
-      const coverExt = coverFile.name.split('.').pop();
-      const coverName = `cover-${Date.now()}.${coverExt}`;
-      const { error: coverErr } = await supabase.storage.from('track_covers').upload(coverName, coverFile);
-      if (coverErr) throw coverErr;
-      const coverUrl = supabase.storage.from('track_covers').getPublicUrl(coverName).data.publicUrl;
+      // 2. Загружаем аудио-трек
+      const audioRes = await uploadFiles("mediaPost", { files: [audioFile] });
+      const audioUrl = audioRes[0].url;
 
+      // 3. Сохраняем в Supabase
       const { data: newTrack, error: dbErr } = await supabase.from('tracks').insert({
         title, artist, src: audioUrl, cover_url: coverUrl
       }).select().single();
@@ -86,7 +86,7 @@ export default function TracksPage() {
             return (
               <div key={track.id} className={`group flex items-center gap-6 p-4 border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors ${isThisTrackActive ? "bg-zinc-900/20" : ""}`}>
                 <div className="relative w-16 h-16 shrink-0 cursor-pointer overflow-hidden border border-white/5" onClick={() => isThisTrackActive ? togglePlay() : playTrack(index)}>
-                  <Image src={toProxyUrl(track.cover_url) || "/default-cover.jpg"} alt={track.title} fill sizes="64px" className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`} unoptimized />
+                  <Image src={track.cover_url || "/default-cover.jpg"} alt={track.title} fill sizes="64px" className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`} unoptimized />
                   <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${isThisTrackActive || 'opacity-0 group-hover:opacity-100'}`}>
                     {isThisTrackPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white ml-1" />}
                   </div>
@@ -141,14 +141,14 @@ export default function TracksPage() {
               </div>
 
               <div className="flex items-center gap-4">
-                <input type="file" required ref={audioInputRef} onChange={e => setAudioFile(e.target.files?.[0] || null)} accept="audio/*" className="hidden" />
+                <input type="file" required ref={audioInputRef} onChange={e => setAudioFile(e.target.files?.[0] || null)} accept="audio/mpeg, audio/mp3" className="hidden" />
                 <button type="button" onClick={() => audioInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 border border-zinc-800 py-3 text-xs uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors">
-                  <Upload size={16} /> {audioFile ? "Аудио выбрано" : "Загрузить MP3/WAV"}
+                  <Upload size={16} /> {audioFile ? "Аудио выбрано" : "Загрузить MP3"}
                 </button>
               </div>
 
               <button type="submit" disabled={isUploading} className="mt-4 bg-white text-black py-4 text-xs font-inter tracking-widest uppercase font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50">
-                {isUploading ? "Загрузка на сервер..." : "Опубликовать"}
+                {isUploading ? "Загрузка..." : "Опубликовать"}
               </button>
             </form>
           </div>

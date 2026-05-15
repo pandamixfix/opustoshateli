@@ -6,8 +6,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart, Send, Trash2, Plus, X, Image as ImageIcon, Video, Music, MessageSquare, Edit2 } from "lucide-react";
 import { type User } from "@supabase/supabase-js";
-import { createClient, toProxyUrl } from "../../../lib/supabase";
+import { createClient } from "../../../lib/supabase";
 import UserName from "../../../components/shared/UserName";
+import imageCompression from 'browser-image-compression';
+import { uploadFiles } from "../../../lib/uploadthing";
 
 interface Author {
   id: string;
@@ -63,16 +65,18 @@ export default function WallPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setCurrentUser(session.user);
           const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
           if (profileData) setUserProfile(profileData);
         }
 
+        // Загружаем только 15 последних постов
         const { data: postsData, error } = await supabase.from("posts")
           .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(15);
 
         if (!error && postsData) {
           const formattedPosts = (postsData as unknown as Post[]).map(post => ({
@@ -88,7 +92,6 @@ export default function WallPage() {
     }
 
     fetchData();
-    // Мы удалили supabase.channel(...), чтобы избежать ошибок WebSocket (wss://) через прокси Vercel
   }, [router, supabase]);
 
   const canPost = userProfile?.role === 'Опустошатель';
@@ -118,10 +121,16 @@ export default function WallPage() {
     try {
       let uploadedMediaUrl = null;
       if (postMedia) {
-        const fileExt = postMedia.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('post_media').upload(fileName, postMedia);
-        if (!uploadError) uploadedMediaUrl = supabase.storage.from('post_media').getPublicUrl(fileName).data.publicUrl;
+        let fileToUpload = postMedia;
+        
+        // Сжимаем только картинки
+        if (mediaType === 'image') {
+          fileToUpload = await imageCompression(postMedia, { maxSizeMB: 0.5, maxWidthOrHeight: 1920 });
+        }
+
+        // Грузим в Uploadthing
+        const res = await uploadFiles("mediaPost", { files: [fileToUpload] });
+        uploadedMediaUrl = res[0].url;
       }
 
       const { data: newPost, error } = await supabase.from("posts")
@@ -209,8 +218,8 @@ export default function WallPage() {
                   
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 cursor-pointer hover:border-zinc-500 transition-colors" onClick={() => setSelectedImage(toProxyUrl(post.profiles?.avatar_url))}>
-                        <Image src={toProxyUrl(post.profiles?.avatar_url) || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority unoptimized />
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 cursor-pointer hover:border-zinc-500 transition-colors" onClick={() => setSelectedImage(post.profiles?.avatar_url || null)}>
+                        <Image src={post.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority unoptimized />
                       </div>
                       
                       <div className="flex flex-col">
@@ -261,18 +270,18 @@ export default function WallPage() {
                   )}
                   
                   {post.media_url && post.media_type === 'image' && (
-                    <div className="relative w-full aspect-video border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden cursor-pointer" onClick={() => setSelectedImage(toProxyUrl(post.media_url))}>
-                      <Image src={toProxyUrl(post.media_url)!} alt="Медиа поста" fill className="object-contain" unoptimized />
+                    <div className="relative w-full aspect-video border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden cursor-pointer" onClick={() => setSelectedImage(post.media_url!)}>
+                      <Image src={post.media_url!} alt="Медиа поста" fill className="object-contain" unoptimized />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'video' && (
                     <div className="relative w-full border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden">
-                      <video src={toProxyUrl(post.media_url)!} controls className="w-full max-h-125 object-contain" />
+                      <video src={post.media_url!} controls className="w-full max-h-125 object-contain" />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'audio' && (
                     <div className="w-full mb-6 p-4 border border-zinc-800 bg-zinc-950 rounded-lg">
-                      <audio src={toProxyUrl(post.media_url)!} controls className="w-full" />
+                      <audio src={post.media_url!} controls className="w-full" />
                     </div>
                   )}
 
@@ -367,7 +376,7 @@ export default function WallPage() {
               )}
               <div className="flex justify-between items-center border-t border-zinc-900 pt-4 mt-2">
                 <div className="flex gap-4">
-                  <input type="file" ref={fileInputRef} onChange={handleMediaChange} accept="image/*,video/*,audio/*" className="hidden" />
+                  <input type="file" ref={fileInputRef} onChange={handleMediaChange} accept="image/*,video/*,audio/mpeg,audio/mp3" className="hidden" />
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-2"><ImageIcon size={20} /><span className="text-[10px] uppercase tracking-widest font-inter hidden sm:inline">Фото</span></button>
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-2"><Video size={20} /><span className="text-[10px] uppercase tracking-widest font-inter hidden sm:inline">Видео</span></button>
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-2"><Music size={20} /><span className="text-[10px] uppercase tracking-widest font-inter hidden sm:inline">Аудио</span></button>

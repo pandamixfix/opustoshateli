@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { X, Plus, Upload } from "lucide-react";
-import { createClient, toProxyUrl } from "../../../lib/supabase";
+import { createClient } from "../../../lib/supabase";
+import imageCompression from 'browser-image-compression';
+import { uploadFiles } from "../../../lib/uploadthing";
 
 interface Photo {
   id: string;
@@ -28,7 +30,8 @@ export default function GalleryPage() {
 
   useEffect(() => {
     async function loadGallery() {
-      const { data } = await supabase.from('gallery').select('*').order('created_at', { ascending: false });
+      // Добавили лимит в 20 фото, чтобы не перегружать страницу
+      const { data } = await supabase.from('gallery').select('*').order('created_at', { ascending: false }).limit(20);
       if (data) setPhotos(data);
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -46,15 +49,20 @@ export default function GalleryPage() {
     setIsUploading(true);
 
     try {
-      const ext = photoFile.name.split('.').pop();
-      const fileName = `photo-${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage.from('gallery').upload(fileName, photoFile);
-      if (uploadErr) throw uploadErr;
-      
-      const photoUrl = supabase.storage.from('gallery').getPublicUrl(fileName).data.publicUrl;
+      // 1. Сжимаем фото (оно будет весить копейки)
+      const compressedFile = await imageCompression(photoFile, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+      });
 
+      // 2. Отправляем в Uploadthing
+      const res = await uploadFiles("mediaPost", { files: [compressedFile] });
+      const publicUrl = res[0].url;
+
+      // 3. Сохраняем готовую ссылку в Supabase
       const { data: newPhoto, error: dbErr } = await supabase.from('gallery').insert({
-        title, url: photoUrl
+        title, url: publicUrl
       }).select().single();
 
       if (dbErr) throw dbErr;
@@ -89,7 +97,7 @@ export default function GalleryPage() {
                 className="relative break-inside-avoid overflow-hidden cursor-pointer transition-all duration-700 ease-out group-hover/gallery:opacity-30 hover:opacity-100! hover:scale-[1.03] hover:z-10 group/item border border-white/5"
                 onClick={() => setSelectedImage(photo.url)}
               >
-                <Image src={toProxyUrl(photo.url)!} alt={photo.title} width={800} height={1200} className="w-full h-auto object-cover brightness-75 group-hover/item:brightness-110 transition-all duration-700" unoptimized />
+                <Image src={photo.url} alt={photo.title} width={800} height={1200} className="w-full h-auto object-cover brightness-75 group-hover/item:brightness-110 transition-all duration-700" unoptimized />
                 <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 transition-all duration-500 flex items-end p-6 sm:p-8 translate-y-4 group-hover/item:translate-y-0">
                   <span className="text-sm font-playfair tracking-widest uppercase text-white drop-shadow-md">{photo.title}</span>
                 </div>
@@ -126,7 +134,7 @@ export default function GalleryPage() {
               </div>
 
               <button type="submit" disabled={isUploading} className="mt-4 bg-white text-black py-4 text-xs font-inter tracking-widest uppercase font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50">
-                {isUploading ? "Загрузка на сервер..." : "Опубликовать"}
+                {isUploading ? "Загрузка..." : "Опубликовать"}
               </button>
             </form>
           </div>
@@ -137,7 +145,7 @@ export default function GalleryPage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={toProxyUrl(selectedImage)!} alt="Крупный план" fill className="object-contain" sizes="100vw" unoptimized />
+            <Image src={selectedImage} alt="Крупный план" fill className="object-contain" sizes="100vw" unoptimized />
           </div>
         </div>
       )}

@@ -22,9 +22,5 @@ export function createClient() {
 
 // Умная функция: берет заблокированный URL и превращает его в нашу рабочую ссылку
 export function toProxyUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  if (REAL_URL && url.startsWith(REAL_URL)) {
-    return url.replace(REAL_URL, '/supabase');
-  }
-  return url;
+  return url || null;
 }

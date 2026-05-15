@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { LogOut, Camera, Edit2, Check, Users, LayoutDashboard, Settings, Search, Maximize2, Trash2, X, Send, Gamepad2, MonitorPlay, Image as ImageIcon, Crown, Shield, Sparkles, PaintBucket, CheckCircle, AlertCircle } from "lucide-react";
-import { createClient, toProxyUrl } from "../../../lib/supabase";
+import { createClient } from "../../../lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import imageCompression from 'browser-image-compression';
+import { uploadFiles } from "../../../lib/uploadthing";
 
 interface UserProfile {
   id: string;
@@ -80,7 +82,7 @@ export default function ProfilePage() {
         const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
 
         if (profileData) {
-           setProfile({ ...profileData, avatar_url: toProxyUrl(profileData.avatar_url) || profileData.avatar_url });
+           setProfile({ ...profileData });
            setNewStatus(profileData.status || "");
            setEditSocials({ tg: profileData.social_tg || "", twitch: profileData.social_twitch || "", yt: profileData.social_yt || "" });
            setEditBgColor(profileData.bg_color || "#000000");
@@ -142,14 +144,12 @@ export default function ProfilePage() {
     if (!file || !profile) return;
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
+      const compressedFile = await imageCompression(file, { maxSizeMB: 0.2, maxWidthOrHeight: 800 });
+      const res = await uploadFiles("mediaPost", { files: [compressedFile] });
+      const publicUrl = res[0].url;
 
-      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", profile.id);
-      setProfile({ ...profile, avatar_url: toProxyUrl(data.publicUrl) || data.publicUrl });
+      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", profile.id);
+      setProfile({ ...profile, avatar_url: publicUrl });
       window.dispatchEvent(new Event('profileUpdated'));
     } catch (err) { console.error(err); } finally { setIsUploading(false); }
   };
@@ -159,14 +159,16 @@ export default function ProfilePage() {
     if (!file || !profile) return;
     setIsUploadingBg(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${profile.id}-bg-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("backgrounds").upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
+      let fileToUpload = file;
+      if (file.type.startsWith('image/')) {
+        fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920 });
+      }
 
-      const { data } = supabase.storage.from("backgrounds").getPublicUrl(fileName);
-      await supabase.from("profiles").update({ bg_image_url: data.publicUrl, bg_position_y: 50 }).eq("id", profile.id);
-      setProfile({ ...profile, bg_image_url: toProxyUrl(data.publicUrl) || data.publicUrl, bg_position_y: 50 });
+      const res = await uploadFiles("mediaPost", { files: [fileToUpload] });
+      const publicUrl = res[0].url;
+
+      await supabase.from("profiles").update({ bg_image_url: publicUrl, bg_position_y: 50 }).eq("id", profile.id);
+      setProfile({ ...profile, bg_image_url: publicUrl, bg_position_y: 50 });
       setEditBgPositionY(50);
     } catch (err) { console.error(err); } finally { setIsUploadingBg(false); }
   };
@@ -183,9 +185,8 @@ export default function ProfilePage() {
     setProfile({ ...profile, status: newStatus });
     setIsEditingStatus(false);
     
-    // Красивое уведомление
     setToast({ text: "Статус успешно обновлен", type: 'success' });
-    setTimeout(() => setToast(null), 3000); // Исчезнет через 3 секунды
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleSaveCustomization = async () => {
@@ -227,9 +228,8 @@ export default function ProfilePage() {
       avatar_effect: editAvatarEffect
     });
     
-    // ВЫЗЫВАЕМ НАШ СТИЛЬНЫЙ ТОСТ ВМЕСТО ALERT
     setToast({ text: "Настройки кастомизации успешно сохранены", type: "success" });
-    setTimeout(() => setToast(null), 3000); // Исчезнет через 3 секунды
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleSaveEditPost = async (postId: string) => {
@@ -252,7 +252,6 @@ export default function ProfilePage() {
 
   const isAdmin = profile.role === 'Опустошатель';
 
-  // Динамические стили
   const displayAuraColor = (activeTab === 'settings' && settingsTab === 'custom') ? editBgColor : (profile.bg_color || "#000000");
   const displayCardColor = (activeTab === 'settings' && settingsTab === 'custom') ? editCardColor : (profile.card_color || "#000000");
   const displayBgPositionY = (activeTab === 'settings' && settingsTab === 'custom') ? editBgPositionY : (profile.bg_position_y ?? 50);
@@ -262,7 +261,6 @@ export default function ProfilePage() {
   const displayEffect = (activeTab === 'settings' && settingsTab === 'custom') ? editNameEffect : (profile.name_effect || "none");
   const displayAvatarEffect = (activeTab === 'settings' && settingsTab === 'custom') ? editAvatarEffect : (profile.avatar_effect || "none");
 
-  // Тематический цвет для аватара и ауры
   const themeColor = displayAuraColor !== '#000000' ? displayAuraColor : (isAdmin ? '#f59e0b' : '#ffffff');
 
   const getFontFamily = (font: string) => {
@@ -302,13 +300,11 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* 1. DISCORD NITRO КАРТОЧКА */}
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-10 relative z-10">
         <div 
           className={`w-full rounded-2xl overflow-hidden border ${isAdmin ? 'border-amber-500/30 shadow-[0_0_50px_rgba(245,158,11,0.15)]' : 'border-white/10 shadow-2xl'} relative`}
           style={{ background: `linear-gradient(to bottom, ${displayAuraColor}80 0%, ${displayCardColor} 200px, ${displayCardColor} 100%)` }}
         >
-          {/* БАННЕР */}
           <div className="relative w-full h-40 sm:h-56 bg-zinc-900 group/banner">
             {profile.bg_image_url ? (
               <Image src={profile.bg_image_url} alt="Banner" fill className="object-cover" style={{ objectPosition: `center ${displayBgPositionY}%` }} />
@@ -325,7 +321,6 @@ export default function ProfilePage() {
 
           <div className="px-6 sm:px-10 pb-8 relative">
             <div className="flex justify-between items-start">
-              {/* АВАТАРКА С АНИМАЦИЕЙ */}
               <div 
                 className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar ${avatarFxClass} ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                 style={{ '--fx-color': themeColor } as React.CSSProperties}
@@ -360,7 +355,6 @@ export default function ProfilePage() {
                 {profile.display_name}
               </h1>
 
-              {/* БЕЙДЖИ */}
               <div className="flex gap-2 mt-3">
                  {isAdmin && (
                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-500/50" title="Совет Опустошателей"><Crown size={14} className="text-amber-500"/></div>
@@ -376,7 +370,6 @@ export default function ProfilePage() {
                  )}
               </div>
 
-              {/* СТАТУС ОБО МНЕ */}
               <div className="mt-6 p-4 rounded-xl bg-black/40 border border-white/5 w-full max-w-md shadow-inner">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Обо мне</h3>
@@ -410,7 +403,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* СОЦСЕТИ */}
               <div className="flex flex-wrap gap-4 mt-6">
                   {profile.social_tg && <Link href={profile.social_tg} target="_blank" className="flex items-center gap-2 text-xs font-inter uppercase text-zinc-400 hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-md border border-white/5"><Send size={14}/> Telegram</Link>}
                   {profile.social_twitch && <Link href={profile.social_twitch} target="_blank" className="flex items-center gap-2 text-xs font-inter uppercase text-zinc-400 hover:text-purple-400 transition-colors bg-white/5 px-3 py-1.5 rounded-md border border-white/5"><Gamepad2 size={14}/> Twitch</Link>}
@@ -421,8 +413,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ОСТАЛЬНОЙ КОД БЕЗ ИЗМЕНЕНИЙ (Навигация, посты и т.д.) */}
-      {/* 2. НАВИГАЦИЯ */}
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 mt-8 mb-8 border-b border-white/10 relative z-10">
         <div className="flex gap-8">
           <button onClick={() => setActiveTab('posts')} className={`flex items-center gap-2 py-4 text-xs font-inter tracking-[0.2em] uppercase transition-colors relative ${activeTab === 'posts' ? (isAdmin ? 'text-amber-500' : 'text-white') : 'text-zinc-500 hover:text-zinc-300'}`}>
@@ -440,7 +430,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 3. КОНТЕНТ ВКЛАДОК */}
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
         
         {activeTab === 'posts' && (
@@ -482,8 +471,8 @@ export default function ProfilePage() {
                     )}
                     
                     {post.media_url && post.media_type === 'image' && (
-                      <div className="relative w-full aspect-video border border-zinc-800 rounded-lg bg-black mt-2 cursor-pointer overflow-hidden" onClick={() => setSelectedImage(toProxyUrl(post.media_url))}>
-                        <Image src={toProxyUrl(post.media_url)!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" />
+                      <div className="relative w-full aspect-video border border-zinc-800 rounded-lg bg-black mt-2 cursor-pointer overflow-hidden" onClick={() => setSelectedImage(post.media_url!)}>
+                        <Image src={post.media_url!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" unoptimized />
                       </div>
                     )}
                   </div>
@@ -508,7 +497,7 @@ export default function ProfilePage() {
                    searchResults.map(user => (
                      <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-lg transition-colors">
                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800">
-                         <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
+                         <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                        </div>
                        <div className="flex flex-col">
                          <span className="text-sm font-playfair tracking-wider text-zinc-200 uppercase">{user.display_name}</span>
@@ -528,7 +517,7 @@ export default function ProfilePage() {
                  {following.map(user => (
                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
+                       <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
@@ -543,7 +532,7 @@ export default function ProfilePage() {
                  {followers.map(user => (
                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                       <Image src={toProxyUrl(user.avatar_url) || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
+                       <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
@@ -556,7 +545,6 @@ export default function ProfilePage() {
          </div>
         )}
 
-        {/* НАСТРОЙКИ */}
         {activeTab === 'settings' && (
           <div className="flex flex-col md:flex-row gap-8 w-full">
             <div className="w-full md:w-64 flex flex-col gap-2 shrink-0">
@@ -650,7 +638,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* НОВАЯ ГРУППА: АВАТАР */}
                   <div className="flex flex-col gap-6 border-t border-white/5 pt-6">
                     <h4 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Аватар</h4>
                     
@@ -666,7 +653,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* ОБНОВЛЕННАЯ ГРУППА ФОНА */}
                   <div className="flex flex-col gap-6 border-t border-white/5 pt-6">
                     <h4 className="text-[10px] font-inter uppercase tracking-widest text-zinc-500">Оформление фона</h4>
                     
@@ -711,7 +697,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
           </div>
         </div>
       )}
