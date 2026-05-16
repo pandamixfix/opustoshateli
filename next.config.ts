@@ -1,12 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'gmasrqyfcupgqrxgnnmx.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        port: '',
+        pathname: '/**',
+      }
+    ],
+  },
   async rewrites() {
     return [
       {
-        // Ловим все запросы, которые начинаются с /supabase
+        // Перенаправляем запросы с клиента на твой новый Supabase
         source: '/supabase/:path*',
-        // И перенаправляем их на реальный URL Supabase из .env
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`,
+        destination: 'https://gmasrqyfcupgqrxgnnmx.supabase.co/:path*',
       },
     ];
   },
