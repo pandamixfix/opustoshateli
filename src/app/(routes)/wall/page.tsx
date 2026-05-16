@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Send, Trash2, Plus, X, Image as ImageIcon, Video, Music, MessageSquare, Edit2 } from "lucide-react";
-import { type User } from "@supabase/supabase-js";
 import { createClient } from "../../../lib/supabase";
 import UserName from "../../../components/shared/UserName";
 import imageCompression from 'browser-image-compression';
 import { uploadFiles } from "../../../lib/uploadthing";
+import { useUser } from "../../../hooks/useUser";
+import { useInView } from "react-intersection-observer";
 
 interface Author {
   id: string;
@@ -36,21 +37,31 @@ interface Post {
   comments: Comment[];
 }
 
+const POSTS_PER_PAGE = 10;
+
 export default function WallPage() {
+  const { user: currentUser, profile: userProfile, loading: userLoading } = useUser();
+  const [postsLoading, setPostsLoading] = useState(true);
+
   const [posts, setPosts] = useState<Post[]>([]);
+  
+  // === СТЕЙТЫ ПАГИНАЦИИ ===
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // Хук "Наблюдатель", rootMargin загружает контент за 400px до конца скролла
+  const { ref, inView } = useInView({ threshold: 0, rootMargin: "400px" });
+
   const [newPostText, setNewPostText] = useState("");
   const [postMedia, setPostMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<Author | null>(null);
-  
-  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const[showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -62,37 +73,69 @@ export default function WallPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
+  // Загрузка первых 10 постов (Page 0)
   useEffect(() => {
-    async function fetchData() {
+    async function fetchInitialPosts() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setCurrentUser(session.user);
-          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-          if (profileData) setUserProfile(profileData);
-        }
-
-        // Загружаем только 15 последних постов
         const { data: postsData, error } = await supabase.from("posts")
           .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
           .order("created_at", { ascending: false })
-          .limit(15);
+          .range(0, POSTS_PER_PAGE - 1); // Берем от 0 до 9
 
         if (!error && postsData) {
           const formattedPosts = (postsData as unknown as Post[]).map(post => ({
-            ...post, comments: (post.comments ||[]).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            ...post, comments: (post.comments || []).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
           }));
           setPosts(formattedPosts);
+          if (postsData.length < POSTS_PER_PAGE) setHasMore(false);
         }
       } catch (e) { 
         console.error(e); 
       } finally { 
-        setLoading(false); 
+        setPostsLoading(false); 
       }
     }
+    fetchInitialPosts();
+  }, [supabase]);
 
-    fetchData();
-  }, [router, supabase]);
+  // Подгрузка следующих постов при скролле (Infinite Scroll)
+  useEffect(() => {
+    if (inView && hasMore && !isLoadingMore && !postsLoading) {
+      async function loadMorePosts() {
+        setIsLoadingMore(true);
+        const nextPage = page + 1;
+        const from = nextPage * POSTS_PER_PAGE;
+        const to = from + POSTS_PER_PAGE - 1;
+
+        try {
+          const { data: morePosts, error } = await supabase.from("posts")
+            .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+          if (!error && morePosts) {
+            const formattedPosts = (morePosts as unknown as Post[]).map(post => ({
+              ...post, comments: (post.comments || []).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            }));
+
+            setPosts(prev => {
+              // Защита от дубликатов (если за время скролла кто-то добавил пост)
+              const uniqueNewPosts = formattedPosts.filter(np => !prev.some(p => p.id === np.id));
+              return [...prev, ...uniqueNewPosts];
+            });
+            
+            setPage(nextPage);
+            if (morePosts.length < POSTS_PER_PAGE) setHasMore(false);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsLoadingMore(false);
+        }
+      }
+      loadMorePosts();
+    }
+  }, [inView, hasMore, isLoadingMore, postsLoading, page, supabase]);
 
   const canPost = userProfile?.role === 'Опустошатель';
 
@@ -123,14 +166,13 @@ export default function WallPage() {
       if (postMedia) {
         let fileToUpload = postMedia;
         
-        // Сжимаем только картинки
         if (mediaType === 'image') {
           fileToUpload = await imageCompression(postMedia, { maxSizeMB: 0.5, maxWidthOrHeight: 1920 });
         }
 
-        // Грузим в Uploadthing
         const res = await uploadFiles("mediaPost", { files: [fileToUpload] });
-        uploadedMediaUrl = res[0].url;
+        // ИСПРАВЛЕНИЕ: Добавили ufsUrl для новой версии UploadThing
+        uploadedMediaUrl = res[0].ufsUrl || res[0].url; 
       }
 
       const { data: newPost, error } = await supabase.from("posts")
@@ -138,11 +180,24 @@ export default function WallPage() {
         .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect )`)
         .single();
 
-      if (!error && newPost) {
-        setPosts([{ ...(newPost as unknown as Post), likes: [], comments:[] }, ...posts]);
+      // ИСПРАВЛЕНИЕ: Вывод точной ошибки из Supabase
+      if (error) {
+        console.error("Ошибка Supabase:", error);
+        alert(`Ошибка при сохранении поста: ${error.message}`);
+        return;
+      }
+
+      if (newPost) {
+        setPosts(prev => [{ ...(newPost as unknown as Post), likes: [], comments: [] }, ...prev]);
         setNewPostText(""); clearMedia(); setIsModalOpen(false);
       }
-    } finally { setIsSubmitting(false); }
+    } catch (err) {
+      // ИСПРАВЛЕНИЕ: Вывод системной ошибки
+      console.error("Системная ошибка:", err);
+      alert("Не удалось загрузить файл или опубликовать пост. Проверьте консоль F12.");
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   const handleSaveEditPost = async (postId: string) => {
@@ -169,7 +224,7 @@ export default function WallPage() {
     setPosts(posts.map(post => {
       if (post.id === postId) {
         if (isLikedByMe) return { ...post, likes: post.likes.filter(l => l.user_id !== currentUser.id) };
-        return { ...post, likes:[...post.likes, { user_id: currentUser.id }] };
+        return { ...post, likes: [...post.likes, { user_id: currentUser.id }] };
       }
       return post;
     }));
@@ -188,12 +243,12 @@ export default function WallPage() {
       .single();
 
     if (!error && newComment) {
-      setPosts(posts.map(post => post.id === postId ? { ...post, comments:[...post.comments, newComment as unknown as Comment] } : post));
+      setPosts(posts.map(post => post.id === postId ? { ...post, comments: [...post.comments, newComment as unknown as Comment] } : post));
       setCommentTexts(prev => ({ ...prev, [postId]: "" }));
     }
   };
 
-  if (loading) return <main className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin"></div></main>;
+  if (userLoading || postsLoading) return <main className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin"></div></main>;
 
   return (
     <main className="min-h-screen flex flex-col items-center pt-32 pb-32 px-4 sm:px-6 relative">
@@ -219,7 +274,7 @@ export default function WallPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 cursor-pointer hover:border-zinc-500 transition-colors" onClick={() => setSelectedImage(post.profiles?.avatar_url || null)}>
-                        <Image src={post.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority />
+                        <Image src={post.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority unoptimized />
                       </div>
                       
                       <div className="flex flex-col">
@@ -263,7 +318,7 @@ export default function WallPage() {
                       <div className="relative mb-6">
                         <p className={`text-sm font-inter text-zinc-300 leading-relaxed whitespace-pre-wrap ${expandedPosts[post.id] ? '' : 'line-clamp-6'}`}>{post.content}</p>
                         {!expandedPosts[post.id] && post.content.length > 200 && (
-                          <button onClick={() => setExpandedPosts(prev => ({ ...prev,[post.id]: true }))} className="text-[10px] font-inter uppercase tracking-widest text-zinc-500 hover:text-white mt-2 transition-colors">Читать полностью...</button>
+                          <button onClick={() => setExpandedPosts(prev => ({ ...prev, [post.id]: true }))} className="text-[10px] font-inter uppercase tracking-widest text-zinc-500 hover:text-white mt-2 transition-colors">Читать полностью...</button>
                         )}
                       </div>
                     )
@@ -271,7 +326,7 @@ export default function WallPage() {
                   
                   {post.media_url && post.media_type === 'image' && (
                     <div className="relative w-full aspect-video border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden cursor-pointer" onClick={() => setSelectedImage(post.media_url!)}>
-                      <Image src={post.media_url!} alt="Медиа поста" fill className="object-contain" />
+                      <Image src={post.media_url!} alt="Медиа поста" fill className="object-contain" unoptimized />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'video' && (
@@ -291,7 +346,7 @@ export default function WallPage() {
                       <span className="text-xs font-inter">{post.likes.length > 0 ? post.likes.length : ""}</span>
                     </button>
                     
-                    <button onClick={() => setShowComments(prev => ({ ...prev,[post.id]: !prev[post.id] }))} className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-300"}`}>
+                    <button onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))} className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-300"}`}>
                       <MessageSquare size={18} />
                       <span className="text-xs font-inter">{post.comments?.length > 0 ? post.comments.length : ""}</span>
                     </button>
@@ -305,7 +360,7 @@ export default function WallPage() {
                         post.comments?.map(comment => (
                           <div key={comment.id} className="flex gap-3 items-start">
                             <Link href={`/profile/${comment.profiles?.id}`} className="relative w-8 h-8 rounded-full overflow-hidden border border-zinc-800 shrink-0 hover:border-zinc-500 transition-colors">
-                              <Image src={comment.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" priority />
+                              <Image src={comment.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" priority unoptimized />
                             </Link>
                             <div className="flex flex-col bg-zinc-950/50 p-3 border border-zinc-900 rounded-r-xl rounded-bl-xl w-full">
                               <div className="flex justify-between items-center mb-1">
@@ -331,7 +386,7 @@ export default function WallPage() {
                       {currentUser ? (
                         <form onSubmit={(e) => handleAddComment(post.id, e)} className="flex items-end gap-3 mt-2">
                           <div className="relative w-full">
-                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({ ...prev,[post.id]: e.target.value }))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
+                            <input type="text" value={commentTexts[post.id] || ""} onChange={(e) => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} placeholder="Оставить комментарий..." className="w-full bg-zinc-950 border border-zinc-900 py-2.5 px-4 pr-10 text-xs font-inter text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors" />
                             <button type="submit" disabled={!commentTexts[post.id]?.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors disabled:opacity-50"><Send size={14} /></button>
                           </div>
                         </form>
@@ -348,6 +403,24 @@ export default function WallPage() {
               );
             })
           )}
+
+          {/* === БЛОК ПАГИНАЦИИ === */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-6">
+              <div className="w-6 h-6 border-t-2 border-zinc-500 rounded-full animate-spin"></div>
+            </div>
+          )}
+          
+          {!isLoadingMore && hasMore && posts.length > 0 && (
+            <div ref={ref} className="h-10 w-full opacity-0 pointer-events-none"></div>
+          )}
+          
+          {!hasMore && posts.length > 0 && (
+            <div className="text-center py-8 text-[10px] font-inter uppercase tracking-widest text-zinc-600">
+              Вы прочитали всё
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -369,7 +442,7 @@ export default function WallPage() {
               {mediaPreview && (
                 <div className="relative w-full border border-zinc-800 bg-black p-2 flex flex-col items-center justify-center">
                   <button type="button" onClick={clearMedia} className="absolute top-2 right-2 p-1.5 bg-black/80 text-zinc-400 hover:text-white z-10 rounded-full"><X size={16} /></button>
-                  {mediaType === 'image' && <Image src={mediaPreview} alt="Preview" width={400} height={300} className="object-contain max-h-64" />}
+                  {mediaType === 'image' && <Image src={mediaPreview} alt="Preview" width={400} height={300} className="object-contain max-h-64" unoptimized />}
                   {mediaType === 'video' && <video src={mediaPreview} controls className="max-h-64 w-full" />}
                   {mediaType === 'audio' && <audio src={mediaPreview} controls className="w-full mt-4 mb-4" />}
                 </div>
@@ -395,7 +468,7 @@ export default function WallPage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
           </div>
         </div>
       )}

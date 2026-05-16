@@ -1,38 +1,30 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { Play, Pause, Plus, X, Upload } from "lucide-react";
 import { usePlayerStore } from "../../../features/player/store";
 import { createClient } from "../../../lib/supabase";
 import imageCompression from 'browser-image-compression';
 import { uploadFiles } from "../../../lib/uploadthing";
+import { useUser } from "../../../hooks/useUser";
 
 export default function TracksPage() {
   const { tracks, currentTrackIndex, isPlaying, playTrack, togglePlay, setTracks } = usePlayerStore();
-  const[isAdmin, setIsAdmin] = useState(false);
-  const[isModalOpen, setIsModalOpen] = useState(false);
+  const { profile } = useUser();
+  const isAdmin = profile?.role === 'Опустошатель';
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
-  const[audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
   const audioInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [supabase] = useState(() => createClient());
-
-  useEffect(() => {
-    async function checkRole() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-        if (data?.role === 'Опустошатель') setIsAdmin(true);
-      }
-    }
-    checkRole();
-  }, [supabase]);
 
   const handleUploadTrack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,28 +32,33 @@ export default function TracksPage() {
     setIsUploading(true);
 
     try {
-      // 1. Сжимаем и загружаем обложку
       const compressedCover = await imageCompression(coverFile, { maxSizeMB: 0.2, maxWidthOrHeight: 1080 });
       const coverRes = await uploadFiles("mediaPost", { files: [compressedCover] });
-      const coverUrl = coverRes[0].url;
+      // ИСПРАВЛЕНИЕ: Поддержка ufsUrl
+      const coverUrl = coverRes[0].ufsUrl || coverRes[0].url;
 
-      // 2. Загружаем аудио-трек
       const audioRes = await uploadFiles("mediaPost", { files: [audioFile] });
-      const audioUrl = audioRes[0].url;
+      // ИСПРАВЛЕНИЕ: Поддержка ufsUrl
+      const audioUrl = audioRes[0].ufsUrl || audioRes[0].url;
 
-      // 3. Сохраняем в Supabase
       const { data: newTrack, error: dbErr } = await supabase.from('tracks').insert({
         title, artist, src: audioUrl, cover_url: coverUrl
       }).select().single();
 
-      if (dbErr) throw dbErr;
+      // ИСПРАВЛЕНИЕ: Вывод ошибки Supabase
+      if (dbErr) {
+        console.error("Ошибка Supabase:", dbErr);
+        alert(`Ошибка при сохранении трека: ${dbErr.message}`);
+        return;
+      }
 
       setTracks([...tracks, newTrack]);
       setIsModalOpen(false);
       setTitle(""); setArtist(""); setAudioFile(null); setCoverFile(null);
     } catch (err) {
-      alert("Ошибка при загрузке трека.");
-      console.error(err);
+      // ИСПРАВЛЕНИЕ: Вывод системной ошибки
+      console.error("Системная ошибка:", err);
+      alert("Не удалось загрузить трек или обложку. Проверьте консоль F12.");
     } finally {
       setIsUploading(false);
     }
@@ -86,7 +83,7 @@ export default function TracksPage() {
             return (
               <div key={track.id} className={`group flex items-center gap-6 p-4 border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors ${isThisTrackActive ? "bg-zinc-900/20" : ""}`}>
                 <div className="relative w-16 h-16 shrink-0 cursor-pointer overflow-hidden border border-white/5" onClick={() => isThisTrackActive ? togglePlay() : playTrack(index)}>
-                  <Image src={track.cover_url || "/default-cover.jpg"} alt={track.title} fill sizes="64px" className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`} />
+                  <Image src={track.cover_url || "/default-cover.jpg"} alt={track.title} fill sizes="64px" className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`} unoptimized />
                   <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${isThisTrackActive || 'opacity-0 group-hover:opacity-100'}`}>
                     {isThisTrackPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white ml-1" />}
                   </div>
