@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
+  async rewrites() {
+    return [
       {
-        protocol: "https",
-        hostname: "utfs.io", // Домен Uploadthing
+        // Ловим все запросы, которые начинаются с /supabase
+        source: '/supabase/:path*',
+        // И перенаправляем их на реальный URL Supabase из .env
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`,
       },
-    ],
+    ];
   },
 };
 
