@@ -86,7 +86,7 @@ export default function TracksPage() {
             return (
               <div key={track.id} className={`group flex items-center gap-6 p-4 border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors ${isThisTrackActive ? "bg-zinc-900/20" : ""}`}>
                 <div className="relative w-16 h-16 shrink-0 cursor-pointer overflow-hidden border border-white/5" onClick={() => isThisTrackActive ? togglePlay() : playTrack(index)}>
-                  <Image src={track.cover_url || "/default-cover.jpg"} alt={track.title} fill sizes="64px" className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`} unoptimized />
+                  <Image src={track.cover_url || "/default-cover.jpg"} alt={track.title} fill sizes="64px" className={`object-cover transition-all duration-500 ${isThisTrackActive ? "scale-110 grayscale-0" : "grayscale group-hover:scale-105"}`} />
                   <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${isThisTrackActive || 'opacity-0 group-hover:opacity-100'}`}>
                     {isThisTrackPlaying ? <Pause size={24} className="text-white" /> : <Play size={24} className="text-white ml-1" />}
                   </div>

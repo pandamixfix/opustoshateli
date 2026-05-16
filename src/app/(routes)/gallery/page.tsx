@@ -97,7 +97,7 @@ export default function GalleryPage() {
                 className="relative break-inside-avoid overflow-hidden cursor-pointer transition-all duration-700 ease-out group-hover/gallery:opacity-30 hover:opacity-100! hover:scale-[1.03] hover:z-10 group/item border border-white/5"
                 onClick={() => setSelectedImage(photo.url)}
               >
-                <Image src={photo.url} alt={photo.title} width={800} height={1200} className="w-full h-auto object-cover brightness-75 group-hover/item:brightness-110 transition-all duration-700" unoptimized />
+                <Image src={photo.url} alt={photo.title} width={800} height={1200} className="w-full h-auto object-cover brightness-75 group-hover/item:brightness-110 transition-all duration-700" />
                 <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover/item:opacity-100 transition-all duration-500 flex items-end p-6 sm:p-8 translate-y-4 group-hover/item:translate-y-0">
                   <span className="text-sm font-playfair tracking-widest uppercase text-white drop-shadow-md">{photo.title}</span>
                 </div>
@@ -145,7 +145,7 @@ export default function GalleryPage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Крупный план" fill className="object-contain" sizes="100vw" unoptimized />
+            <Image src={selectedImage} alt="Крупный план" fill className="object-contain" sizes="100vw"  />
           </div>
         </div>
       )}

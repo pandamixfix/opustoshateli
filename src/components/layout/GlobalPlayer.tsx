@@ -103,7 +103,7 @@ export default function GlobalPlayer() {
           
           <div className="flex items-center gap-4 w-[60%] sm:w-1/3 cursor-pointer sm:cursor-default" onClick={() => { if (window.innerWidth < 640) setIsExpanded(true); }}>
             <div className="relative w-10 h-10 sm:w-12 sm:h-12 border border-white/10 shrink-0 overflow-hidden">
-              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="48px" className="object-cover grayscale" unoptimized />
+              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="48px" className="object-cover grayscale" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-playfair tracking-wider text-zinc-100 uppercase truncate">{currentTrack.title}</span>
@@ -141,7 +141,7 @@ export default function GlobalPlayer() {
         {isExpanded && (
           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed top-0 left-0 w-full h-dvh z-100 bg-black flex flex-col sm:hidden">
             <div className="absolute inset-0 z-0 overflow-hidden">
-              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt="bg" fill className="object-cover blur-[80px] opacity-40 scale-125" unoptimized />
+              <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt="bg" fill className="object-cover blur-[80px] opacity-40 scale-125" />
               <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/60 to-black"></div>
             </div>
 
@@ -153,7 +153,7 @@ export default function GlobalPlayer() {
               </div>
 
               <motion.div className="relative w-full max-w-[320px] mx-auto aspect-square shadow-2xl mb-8 border border-white/10 shrink-0" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }}>
-                <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="100vw" className="object-cover grayscale" unoptimized />
+                <Image src={toProxyUrl(currentTrack.cover_url) || "/default-cover.jpg"} alt={currentTrack.title} fill sizes="100vw" className="object-cover grayscale" />
               </motion.div>
 
               <div className="flex flex-col items-center text-center mb-8 shrink-0">

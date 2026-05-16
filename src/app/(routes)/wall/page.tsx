@@ -219,7 +219,7 @@ export default function WallPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800 shrink-0 cursor-pointer hover:border-zinc-500 transition-colors" onClick={() => setSelectedImage(post.profiles?.avatar_url || null)}>
-                        <Image src={post.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority unoptimized />
+                        <Image src={post.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="40px" priority />
                       </div>
                       
                       <div className="flex flex-col">
@@ -271,7 +271,7 @@ export default function WallPage() {
                   
                   {post.media_url && post.media_type === 'image' && (
                     <div className="relative w-full aspect-video border border-zinc-800 mb-6 bg-zinc-950 overflow-hidden cursor-pointer" onClick={() => setSelectedImage(post.media_url!)}>
-                      <Image src={post.media_url!} alt="Медиа поста" fill className="object-contain" unoptimized />
+                      <Image src={post.media_url!} alt="Медиа поста" fill className="object-contain" />
                     </div>
                   )}
                   {post.media_url && post.media_type === 'video' && (
@@ -305,7 +305,7 @@ export default function WallPage() {
                         post.comments?.map(comment => (
                           <div key={comment.id} className="flex gap-3 items-start">
                             <Link href={`/profile/${comment.profiles?.id}`} className="relative w-8 h-8 rounded-full overflow-hidden border border-zinc-800 shrink-0 hover:border-zinc-500 transition-colors">
-                              <Image src={comment.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" priority unoptimized />
+                              <Image src={comment.profiles?.avatar_url || "/default-cover.jpg"} alt="Аватар" fill className="object-cover" sizes="32px" priority />
                             </Link>
                             <div className="flex flex-col bg-zinc-950/50 p-3 border border-zinc-900 rounded-r-xl rounded-bl-xl w-full">
                               <div className="flex justify-between items-center mb-1">
@@ -369,7 +369,7 @@ export default function WallPage() {
               {mediaPreview && (
                 <div className="relative w-full border border-zinc-800 bg-black p-2 flex flex-col items-center justify-center">
                   <button type="button" onClick={clearMedia} className="absolute top-2 right-2 p-1.5 bg-black/80 text-zinc-400 hover:text-white z-10 rounded-full"><X size={16} /></button>
-                  {mediaType === 'image' && <Image src={mediaPreview} alt="Preview" width={400} height={300} className="object-contain max-h-64" unoptimized />}
+                  {mediaType === 'image' && <Image src={mediaPreview} alt="Preview" width={400} height={300} className="object-contain max-h-64" />}
                   {mediaType === 'video' && <video src={mediaPreview} controls className="max-h-64 w-full" />}
                   {mediaType === 'audio' && <audio src={mediaPreview} controls className="w-full mt-4 mb-4" />}
                 </div>
@@ -395,7 +395,7 @@ export default function WallPage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" />
           </div>
         </div>
       )}

@@ -472,7 +472,7 @@ export default function ProfilePage() {
                     
                     {post.media_url && post.media_type === 'image' && (
                       <div className="relative w-full aspect-video border border-zinc-800 rounded-lg bg-black mt-2 cursor-pointer overflow-hidden" onClick={() => setSelectedImage(post.media_url!)}>
-                        <Image src={post.media_url!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" unoptimized />
+                        <Image src={post.media_url!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105"  />
                       </div>
                     )}
                   </div>
@@ -697,7 +697,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw"  />
           </div>
         </div>
       )}
