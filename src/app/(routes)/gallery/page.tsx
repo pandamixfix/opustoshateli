@@ -58,7 +58,7 @@ export default function GalleryPage() {
 
       // 2. Отправляем в Uploadthing
       const res = await uploadFiles("mediaPost", { files: [compressedFile] });
-      const publicUrl = res[0].url;
+      const publicUrl = res[0].ufsUrl;
 
       // 3. Сохраняем готовую ссылку в Supabase
       const { data: newPhoto, error: dbErr } = await supabase.from('gallery').insert({

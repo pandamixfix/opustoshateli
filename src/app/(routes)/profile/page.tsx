@@ -146,7 +146,7 @@ export default function ProfilePage() {
     try {
       const compressedFile = await imageCompression(file, { maxSizeMB: 0.2, maxWidthOrHeight: 800 });
       const res = await uploadFiles("mediaPost", { files: [compressedFile] });
-      const publicUrl = res[0].url;
+      const publicUrl = res[0].ufsUrl;
 
       await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", profile.id);
       setProfile({ ...profile, avatar_url: publicUrl });
@@ -165,7 +165,7 @@ export default function ProfilePage() {
       }
 
       const res = await uploadFiles("mediaPost", { files: [fileToUpload] });
-      const publicUrl = res[0].url;
+      const publicUrl = res[0].ufsUrl;
 
       await supabase.from("profiles").update({ bg_image_url: publicUrl, bg_position_y: 50 }).eq("id", profile.id);
       setProfile({ ...profile, bg_image_url: publicUrl, bg_position_y: 50 });

@@ -11,8 +11,8 @@ export const ourFileRouter = {
   })
   .onUploadComplete(async ({ file }) => {
     // Мы убрали слово metadata отсюда, чтобы линтер не ругался
-    console.log("Файл загружен по ссылке:", file.url);
-    return { url: file.url };
+    console.log("Файл загружен по ссылке:", file.ufsUrl);
+    return { url: file.ufsUrl };
   }),
 } satisfies FileRouter;
 
