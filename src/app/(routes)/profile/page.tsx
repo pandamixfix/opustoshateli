@@ -9,104 +9,105 @@ import { createClient } from "../../../lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import imageCompression from 'browser-image-compression';
 import { uploadFiles } from "../../../lib/uploadthing";
-
-interface UserProfile {
-  id: string;
-  email?: string;
-  display_name: string;
-  avatar_url: string;
-  role: string;
-  status: string;
-  created_at: string;
-  social_tg?: string;
-  social_twitch?: string;
-  social_yt?: string;
-  bg_color?: string;
-  bg_image_url?: string;
-  name_color?: string;
-  name_font?: string;
-  name_glow?: boolean;
-  bg_position_y?: number;
-  name_effect?: string;
-  card_color?: string;
-  avatar_effect?: string;
-}
+import { useUser, UserProfile } from "../../../hooks/useUser";
 
 interface Post { id: string; content: string; media_url?: string | null; media_type?: 'image' | 'video' | 'audio' | null; created_at: string; }
 
 export default function ProfilePage() {
-  const[profile, setProfile] = useState<UserProfile | null>(null);
-  const[myPosts, setMyPosts] = useState<Post[]>([]);
-  const[loading, setLoading] = useState(true);
-  const[isUploading, setIsUploading] = useState(false);
-  const[isUploadingBg, setIsUploadingBg] = useState(false);
+  const { user, profile, loading: userLoading, setProfile } = useUser();
+  const [postsLoading, setPostsLoading] = useState(true);
   
-  const[activeTab, setActiveTab] = useState<'posts' | 'friends' | 'settings'>('posts');
-  const[settingsTab, setSettingsTab] = useState<'privacy' | 'custom'>('privacy');
+  const [prevProfile, setPrevProfile] = useState<UserProfile | null>(null);
+
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
   
-  const[isEditingStatus, setIsEditingStatus] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'friends' | 'settings'>('posts');
+  const [settingsTab, setSettingsTab] = useState<'privacy' | 'custom'>('privacy');
+  
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState("");
 
-  const[selectedImage, setSelectedImage] = useState<string | null>(null);
-  const[editingPostId, setEditingPostId] = useState<string | null>(null);
-  const[editPostText, setEditPostText] = useState("");
-  const[expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editPostText, setEditPostText] = useState("");
+  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
 
-  const[searchQuery, setSearchQuery] = useState("");
-  const[searchResults, setSearchResults] = useState<UserProfile[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [followers, setFollowers] = useState<UserProfile[]>([]);
   const [following, setFollowing] = useState<UserProfile[]>([]);
 
-  const[editSocials, setEditSocials] = useState({ tg: "", twitch: "", yt: "" });
-  const[editBgColor, setEditBgColor] = useState("#000000");
-  const[editNameColor, setEditNameColor] = useState("#ffffff");
-  const[editNameFont, setEditNameFont] = useState("playfair");
-  const[editNameGlow, setEditNameGlow] = useState(false);
-  const[editBgPositionY, setEditBgPositionY] = useState(50);
-  const[editNameEffect, setEditNameEffect] = useState("none");
-  const[editCardColor, setEditCardColor] = useState("#000000");
-  const[editAvatarEffect, setEditAvatarEffect] = useState("none");
-  const[toast, setToast] = useState<{text: string, type: 'success' | 'error'} | null>(null);
+  const [editSocials, setEditSocials] = useState({ tg: "", twitch: "", yt: "" });
+  const [editBgColor, setEditBgColor] = useState("#000000");
+  const [editNameColor, setEditNameColor] = useState("#ffffff");
+  const [editNameFont, setEditNameFont] = useState("playfair");
+  const [editNameGlow, setEditNameGlow] = useState(false);
+  const [editBgPositionY, setEditBgPositionY] = useState(50);
+  const [editNameEffect, setEditNameEffect] = useState("none");
+  const [editCardColor, setEditCardColor] = useState("#000000");
+  const [editAvatarEffect, setEditAvatarEffect] = useState("none");
+  const [toast, setToast] = useState<{text: string, type: 'success' | 'error'} | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
+  // 1. Редирект, если нет пользователя
   useEffect(() => {
-    async function loadData() {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) { window.location.href = "/auth"; return; }
-
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-
-        if (profileData) {
-           setProfile({ ...profileData });
-           setNewStatus(profileData.status || "");
-           setEditSocials({ tg: profileData.social_tg || "", twitch: profileData.social_twitch || "", yt: profileData.social_yt || "" });
-           setEditBgColor(profileData.bg_color || "#000000");
-           setEditNameColor(profileData.name_color || "#ffffff");
-           setEditNameFont(profileData.name_font || "playfair");
-           setEditNameGlow(profileData.name_glow || false);
-           setEditBgPositionY(profileData.bg_position_y ?? 50);
-           setEditNameEffect(profileData.name_effect || "none");
-           setEditCardColor(profileData.card_color || "#000000");
-           setEditAvatarEffect(profileData.avatar_effect || "none");
-        }
-
-        const { data: postsData } = await supabase.from("posts").select("id, content, media_url, media_type, created_at").eq("author_id", session.user.id).order("created_at", { ascending: false });
-        if (postsData) setMyPosts(postsData as Post[]);
-
-      } catch (e) { console.error(e); } finally { setLoading(false); }
+    if (!userLoading && !user) {
+      router.push("/auth");
     }
-    loadData();
-  }, [router, supabase]);
+  }, [user, userLoading, router]);
+
+  // 2. Загрузка постов только если есть пользователь
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchPosts() {
+      if (!user?.id) return;
+      try {
+        const { data: postsData } = await supabase.from("posts")
+          .select("id, content, media_url, media_type, created_at")
+          .eq("author_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (isMounted && postsData) setMyPosts(postsData as Post[]);
+      } catch (e) { 
+        console.error(e); 
+      } finally { 
+        if (isMounted) setPostsLoading(false); 
+      }
+    }
+
+    if (user) {
+      fetchPosts();
+    }
+
+    return () => { isMounted = false; };
+  }, [user, supabase]);
+
+  // 3. Обновление стейта формы напрямую (React Recommended Pattern)
+  if (profile && profile !== prevProfile) {
+    setPrevProfile(profile);
+    setNewStatus(profile.status || "");
+    setEditSocials({ tg: profile.social_tg || "", twitch: profile.social_twitch || "", yt: profile.social_yt || "" });
+    setEditBgColor(profile.bg_color || "#000000");
+    setEditNameColor(profile.name_color || "#ffffff");
+    setEditNameFont(profile.name_font || "playfair");
+    setEditNameGlow(profile.name_glow || false);
+    setEditBgPositionY(profile.bg_position_y ?? 50);
+    setEditNameEffect(profile.name_effect || "none");
+    setEditCardColor(profile.card_color || "#000000");
+    setEditAvatarEffect(profile.avatar_effect || "none");
+  }
 
   useEffect(() => {
     let isMounted = true;
     const loadConnections = async () => {
-      if (!profile) return;
+      if (!profile?.id) return;
       const { data: followingData } = await supabase.from('connections').select('following_id').eq('follower_id', profile.id);
       if (followingData?.length) {
         const ids = followingData.map(f => f.following_id);
@@ -124,13 +125,13 @@ export default function ProfilePage() {
 
     if (activeTab === 'friends' && profile) loadConnections();
     return () => { isMounted = false; };
-  },[activeTab, profile, supabase]);
+  }, [activeTab, profile, supabase]);
 
   const handleSearch = async (q: string) => {
     setSearchQuery(q);
     if (!q.trim() || !profile) { setSearchResults([]); return; }
     const { data } = await supabase.from('profiles').select('*').ilike('display_name', `%${q}%`).neq('id', profile.id).limit(10);
-    setSearchResults(data as UserProfile[] ||[]);
+    setSearchResults(data as UserProfile[] || []);
   };
 
   const handleLogout = async () => {
@@ -247,7 +248,7 @@ export default function ProfilePage() {
     await supabase.from('posts').delete().eq('id', postId);
   };
 
-  if (loading) return <main className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin"></div></main>;
+  if (userLoading || postsLoading) return <main className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-t-2 border-white rounded-full animate-spin"></div></main>;
   if (!profile) return null;
 
   const isAdmin = profile.role === 'Опустошатель';
@@ -325,7 +326,7 @@ export default function ProfilePage() {
                 className={`relative -mt-16 sm:-mt-20 w-32 h-32 sm:w-40 sm:h-40 rounded-full border-[6px] border-black bg-zinc-900 z-20 group/avatar ${avatarFxClass} ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                 style={{ '--fx-color': themeColor } as React.CSSProperties}
               >
-                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px"/>
+                <Image src={profile.avatar_url || "/default-cover.jpg"} alt={profile.display_name} fill className="object-cover rounded-full z-10" sizes="192px" unoptimized />
                 <div className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-300 cursor-pointer z-20">
                   <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 hover:text-zinc-300 transition-colors">
                     <Camera size={14} className="text-white" /> <span className="text-[8px] uppercase tracking-widest text-white">Изменить</span>
@@ -472,7 +473,7 @@ export default function ProfilePage() {
                     
                     {post.media_url && post.media_type === 'image' && (
                       <div className="relative w-full aspect-video border border-zinc-800 rounded-lg bg-black mt-2 cursor-pointer overflow-hidden" onClick={() => setSelectedImage(post.media_url!)}>
-                        <Image src={post.media_url!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105"  />
+                        <Image src={post.media_url!} alt="Медиа" fill className="object-cover grayscale group-hover:grayscale-0 transition-all hover:scale-105" unoptimized />
                       </div>
                     )}
                   </div>
@@ -497,7 +498,7 @@ export default function ProfilePage() {
                    searchResults.map(user => (
                      <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-lg transition-colors">
                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-zinc-800">
-                         <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
+                         <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
                        </div>
                        <div className="flex flex-col">
                          <span className="text-sm font-playfair tracking-wider text-zinc-200 uppercase">{user.display_name}</span>
@@ -517,7 +518,7 @@ export default function ProfilePage() {
                  {following.map(user => (
                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                       <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
+                       <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
@@ -532,7 +533,7 @@ export default function ProfilePage() {
                  {followers.map(user => (
                    <Link key={user.id} href={`/profile/${user.id}`} className="flex items-center gap-4 group bg-black/40 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-colors">
                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-800 group-hover:border-zinc-500 transition-colors">
-                       <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover"/>
+                       <Image src={user.avatar_url || "/default-cover.jpg"} alt="avatar" fill className="object-cover" unoptimized/>
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-playfair tracking-wider text-zinc-300 group-hover:text-white transition-colors uppercase">{user.display_name}</span>
@@ -562,7 +563,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex justify-between items-center border-b border-white/5 pb-4">
                      <span className="text-xs font-inter text-zinc-400">Дата регистрации</span>
-                     <span className="text-xs font-inter text-white">{new Date(profile.created_at).toLocaleDateString("ru-RU", { year: "numeric", month: "long" })}</span>
+                     <span className="text-xs font-inter text-white">{new Date(profile.created_at || new Date()).toLocaleDateString("ru-RU", { year: "numeric", month: "long" })}</span>
                   </div>
                 </div>
               )}
@@ -697,7 +698,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-100 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-300" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} className="absolute top-8 right-8 text-zinc-500 hover:text-white transition-colors z-10"><X size={32} strokeWidth={1} /></button>
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] shadow-[0_0_100px_rgba(255,255,255,0.05)]" onClick={(e) => e.stopPropagation()}>
-            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw"  />
+            <Image src={selectedImage} alt="Fullscreen" fill className="object-contain" sizes="100vw" unoptimized />
           </div>
         </div>
       )}

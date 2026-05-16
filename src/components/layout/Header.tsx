@@ -4,48 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
-import { createClient, toProxyUrl } from "../../lib/supabase";
-
-interface UserProfile {
-  display_name: string;
-  avatar_url: string;
-  role: string;
-}
+import { useUser } from "../../hooks/useUser";
 
 export default function Header() {
-  const[isMenuOpen, setIsMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [supabase] = useState(() => createClient());
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data } = await supabase.from('profiles').select('display_name, avatar_url, role').eq('id', session.user.id).maybeSingle();
-        if (data) {
-          setProfile({
-            ...data,
-            avatar_url: toProxyUrl(data.avatar_url) || data.avatar_url
-          });
-        }
-      } else {
-        setProfile(null);
-      }
-    };
-    
-    fetchSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async () => {
-      fetchSession();
-    });
-
-    window.addEventListener('profileUpdated', fetchSession);
-
-    return () => { 
-      authListener.subscription.unsubscribe(); 
-      window.removeEventListener('profileUpdated', fetchSession);
-    };
-  }, [supabase]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { profile } = useUser();
 
   useEffect(() => {
     if (isMenuOpen) {
