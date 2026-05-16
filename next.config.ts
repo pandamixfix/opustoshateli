@@ -13,6 +13,12 @@ const nextConfig = {
         hostname: 'utfs.io',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.ufs.sh', // <-- ДОБАВЛЕН НОВЫЙ ДОМЕН UPLOADTHING
+        port: '',
+        pathname: '/**',
       }
     ],
   },
