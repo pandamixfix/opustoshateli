@@ -4,7 +4,7 @@ import type { OurFileRouter } from "../app/api/uploadthing/core";
 const { uploadFiles: originalUploadFiles } = generateReactHelpers<OurFileRouter>();
 
 // Твой Cloudflare Worker
-const PROXY_WORKER_URL = "https://upload-proxy.tsapenko02ss.workers.dev";
+const PROXY_WORKER_URL = "https://opustoshateli-proxy.pages.dev/";
 
 export const uploadFiles: typeof originalUploadFiles = async (endpoint, config) => {
   // 1. Сохраняем оригинальные функции браузера
