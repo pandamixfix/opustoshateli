@@ -397,7 +397,7 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 ) : (
-                  <span className="text-sm font-inter text-zinc-300 block whitespace-pre-wrap break-words">
+                  <span className="text-sm font-inter text-zinc-300 block whitespace-pre-wrap wrap-break-word">
                     {profile.status || "Расскажите о себе..."}
                   </span>
                 )}
