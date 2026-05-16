@@ -78,9 +78,9 @@ export default function WallPage() {
     async function fetchInitialPosts() {
       try {
         const { data: postsData, error } = await supabase.from("posts")
-          .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
+          .select(`id, content, media_url, media_type, created_at, profiles!posts_author_id_fkey ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ), likes ( user_id ), comments ( id, content, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect ) )`)
           .order("created_at", { ascending: false })
-          .range(0, POSTS_PER_PAGE - 1); // Берем от 0 до 9
+          .limit(15);
 
         if (!error && postsData) {
           const formattedPosts = (postsData as unknown as Post[]).map(post => ({
@@ -177,7 +177,7 @@ export default function WallPage() {
 
       const { data: newPost, error } = await supabase.from("posts")
         .insert({ author_id: currentUser.id, content: newPostText.trim(), media_url: uploadedMediaUrl, media_type: mediaType })
-        .select(`id, content, media_url, media_type, created_at, profiles ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect )`)
+        .select(`id, content, media_url, media_type, created_at, profiles!posts_author_id_fkey ( id, display_name, avatar_url, role, name_color, name_font, name_glow, name_effect )`)
         .single();
 
       // ИСПРАВЛЕНИЕ: Вывод точной ошибки из Supabase
