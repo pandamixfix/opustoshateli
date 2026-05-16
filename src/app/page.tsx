@@ -25,7 +25,7 @@ const MEMBERS =[
     role: "Опустошитель #03 / IT",
     description: "Технический мозг братства и бизнесмен. Создатель этого цифрового пространства и человек, воплощающий наши идеи в код.",
     imageUrl: "/serezha.jpg",
-    socials: { tg: "https://t.me/avenuetsa" }
+    socials: { tg: "https://t.me/chicagotsa" }
   },
   {
     id: 4,
